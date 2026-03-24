@@ -1,10 +1,19 @@
 ---
 name: deapi-audio
 description: Text-to-speech, voice cloning, voice design, and transcribe audio files via deAPI GPU network. Trigger on 'text to speech', 'TTS', 'generate voice', 'read aloud', 'voice clone', 'clone voice', 'voice design', 'design voice', 'custom voice', 'transcribe audio', 'STT'. For video/YouTube transcription use deapi-video instead.
+version: 1.0.0
 allowed-tools: Bash(bash ${CLAUDE_SKILL_DIR}/scripts/*), Read(${CLAUDE_SKILL_DIR}/**), Write(${CLAUDE_SKILL_DIR}/config.json)
 metadata:
   author: deapi
-  version: "1.0.0"
+  openclaw:
+    requires:
+      env:
+        - DEAPI_API_KEY
+      bins:
+        - curl
+        - jq
+    primaryEnv: DEAPI_API_KEY
+    homepage: https://deapi.ai
 ---
 
 # deAPI Audio

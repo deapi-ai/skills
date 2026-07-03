@@ -1,5 +1,14 @@
 # deAPI Skills - AI Media Generation for Claude Code
 
+> [!NOTE]
+> **A newer, portable successor to this skill lives in [deapi-ai/skills](https://github.com/deapi-ai/skills).**
+> The new `deapi` skill targets the current deAPI **v2** API, discovers models live
+> (no hardcoded slugs), adds music/video generation, and follows the
+> [agentskills.io](https://agentskills.io) open standard — so it runs unchanged in
+> Hermes Agent, Claude Code, Cursor, Goose, OpenCode, Codex and 40+ other agents.
+> This repository (v1 API, Claude Code commands) remains available but is no longer
+> actively developed.
+
 > **Skill for Claude Code** that adds AI media generation capabilities.
 > Install once, then just describe what you want - transcribe videos, generate images,
 > text-to-speech, OCR. Claude automatically picks the right tool.

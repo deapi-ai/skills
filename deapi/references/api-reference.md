@@ -41,9 +41,9 @@ Every POST endpoint has a price estimator sibling: `POST <endpoint>/price`.
 | Transcription | `POST /api/v2/audio/transcriptions` | multipart: `model, include_ts` + exactly one of `source_url` \| `source_file` | URL: YouTube, X, Twitch, Kick, TikTok. Files: audio ≤20 MB, video ≤50 MB |
 | Music | `POST /api/v2/audio/music` | multipart: `caption, model, lyrics, duration (10-600s), inference_steps, guidance_scale, seed, format` (+`bpm, keyscale, timesignature, reference_audio`) | `lyrics: "[Instrumental]"` for no vocals |
 | Text-to-video | `POST /api/v2/videos/generations` | JSON: `prompt, model, width, height, guidance, steps, seed, frames` (+`fps, negative_prompt`) | |
-| Image-to-video | `POST /api/v2/videos/animations` | multipart with `first_frame_image` | |
+| Image-to-video | `POST /api/v2/videos/animations` | multipart: `prompt, first_frame_image, model, width, height, guidance, steps, seed, frames, fps` (+`last_frame_image, negative_prompt`) | `fps` is required by the live API despite being marked optional in the spec |
 | Embeddings | `POST /api/v2/embeddings` | JSON: `input` (string or array), `model` | |
-| Prompt booster | `POST /api/v2/prompts/enhancements` | JSON: `type` (e.g. `images.generations`), `model_slug`, prompt | |
+| Prompt booster | `POST /api/v2/prompts/enhancements` | multipart: `prompt, type` (v2 dot notation, e.g. `images.generations`, `videos.animations`) + `model_slug?, negative_prompt?, image?` (image required for `images.edits`/`videos.animations`) | returns enhanced `prompt` (+`negative_prompt`) |
 | Balance | `GET /api/v2/account/balance` | — | `{"data":{"balance": 19.72}}` |
 
 ## Errors

@@ -46,6 +46,7 @@ INFERENCE_ALIASES = {
     "upscale": {"img-upscale", "image-upscale", "upscale"},
     "music": {"txt2music", "text-to-music", "txt2audio-music"},
     "video": {"txt2video", "text-to-video"},
+    "animate": {"img2video", "image-to-video"},
     "embed": {"txt2embedding", "text-to-embedding", "embedding"},
 }
 
@@ -61,6 +62,7 @@ MODEL_PREFERENCES = {
     "upscale": [r"esrgan"],
     "music": [r"ace"],
     "video": [r"ltx"],
+    "animate": [r"ltx"],
     "embed": [r"bge"],
 }
 
@@ -406,10 +408,24 @@ def cmd_tts(args):
         "format": fmt,
         "sample_rate": args.sample_rate or defaults.get("sample_rate", 24000),
     }
-    voice = args.voice or defaults.get("voice")
-    if voice:
-        fields["voice"] = voice
-    run_job("/api/v2/audio/speech", fields=fields, files=[],
+    files = []
+    if args.clone_audio and args.instruct:
+        raise ApiError("Use either --clone-audio (voice_clone) or --instruct "
+                       "(voice_design), not both.")
+    if args.clone_audio:
+        fields["mode"] = "voice_clone"
+        files.append(("ref_audio", args.clone_audio))
+        if args.ref_text:
+            fields["ref_text"] = args.ref_text
+    elif args.instruct:
+        fields["mode"] = "voice_design"
+        fields["instruct"] = args.instruct
+    else:
+        fields["mode"] = "custom_voice"
+        voice = args.voice or defaults.get("voice")
+        if voice:
+            fields["voice"] = voice
+    run_job("/api/v2/audio/speech", fields=fields, files=files,
             output=args.output, default_name="deapi-speech." + fmt)
 
 
@@ -499,6 +515,60 @@ def cmd_video(args):
             output=args.output, default_name="deapi-video.mp4")
 
 
+def cmd_animate(args):
+    slug, model = resolve_model("animate", args.model)
+    defaults, limits, features = model_defaults(model)
+    frames = args.frames if args.frames is not None else int(defaults.get("frames", 97))
+    fields = {
+        "prompt": args.prompt,
+        "model": slug,
+        "width": clamp(args.width, limits, "min_width", "max_width"),
+        "height": clamp(args.height, limits, "min_height", "max_height"),
+        "steps": clamp(args.steps if args.steps is not None
+                       else int(defaults.get("steps", 8)),
+                       limits, "min_steps", "max_steps"),
+        "guidance": args.guidance if args.guidance is not None
+        else float(defaults.get("guidance", 3.0)),
+        "seed": args.seed if args.seed is not None else random.randint(0, 2**31 - 1),
+        "frames": clamp(frames, limits, "min_frames", "max_frames"),
+        # fps is required by the live API even though the spec marks it optional
+        "fps": clamp(args.fps if args.fps is not None
+                     else int(defaults.get("fps", 24)),
+                     limits, "min_fps", "max_fps"),
+    }
+    if args.negative and features.get("supports_negative_prompt", True):
+        fields["negative_prompt"] = args.negative
+    files = [("first_frame_image", args.image)]
+    if args.last_image:
+        files.append(("last_frame_image", args.last_image))
+    run_job("/api/v2/videos/animations", fields=fields, files=files,
+            output=args.output, default_name="deapi-animation.mp4")
+
+
+def cmd_boost(args):
+    task_to_type = {
+        "image": "images.generations",
+        "edit": "images.edits",
+        "video": "videos.generations",
+        "animate": "videos.animations",
+        "music": "audio.music",
+    }
+    boost_type = task_to_type.get(args.type, args.type)
+    fields = {"prompt": args.prompt, "type": boost_type}
+    if args.model:
+        fields["model_slug"] = args.model
+    else:
+        task = args.type if args.type in INFERENCE_ALIASES else None
+        if task:
+            slug, _ = resolve_model(task, None)
+            fields["model_slug"] = slug
+    if args.negative:
+        fields["negative_prompt"] = args.negative
+    files = [("image", args.image)] if args.image else []
+    run_job("/api/v2/prompts/enhancements", fields=fields, files=files,
+            output=args.output, default_name="deapi-boosted-prompt.txt")
+
+
 def cmd_embed(args):
     slug, _ = resolve_model("embed", args.model)
     request_id, body = submit("/api/v2/embeddings",
@@ -556,6 +626,13 @@ def build_parser():
     p.add_argument("--model")
     p.add_argument("--voice", help="voice slug; discover via models --type tts --json "
                                    "(languages field). Default: model's default voice")
+    p.add_argument("--clone-audio", dest="clone_audio",
+                   help="reference audio file -> voice_clone mode")
+    p.add_argument("--ref-text", dest="ref_text",
+                   help="transcript of the reference audio (improves cloning)")
+    p.add_argument("--instruct",
+                   help='voice description -> voice_design mode, e.g. '
+                        '"a warm female voice with a British accent"')
     p.add_argument("--lang", help="language slug, e.g. en-us (default: model default)")
     p.add_argument("--speed", type=float)
     p.add_argument("--format", help="audio format (default: model default, usually mp3)")
@@ -620,6 +697,34 @@ def build_parser():
     p.add_argument("--negative")
     p.add_argument("--output")
     p.set_defaults(func=cmd_video)
+
+    p = sub.add_parser("animate", help="image-to-video (animate a still image)")
+    p.add_argument("--prompt", required=True, help="motion/scene prompt")
+    p.add_argument("--image", required=True, help="first frame image")
+    p.add_argument("--last-image", dest="last_image",
+                   help="optional last frame image (if the model supports it)")
+    p.add_argument("--model")
+    p.add_argument("--width", type=int, default=1024)
+    p.add_argument("--height", type=int, default=576)
+    p.add_argument("--frames", type=int)
+    p.add_argument("--fps", type=int)
+    p.add_argument("--steps", type=int)
+    p.add_argument("--guidance", type=float)
+    p.add_argument("--seed", type=int)
+    p.add_argument("--negative")
+    p.add_argument("--output")
+    p.set_defaults(func=cmd_animate)
+
+    p = sub.add_parser("boost", help="enhance a prompt via the deAPI prompt booster")
+    p.add_argument("--prompt", required=True, help="prompt to enhance")
+    p.add_argument("--type", default="image",
+                   help="target task (image, edit, video, animate, music) or raw "
+                        "v2 dot-notation type like images.generations")
+    p.add_argument("--model", help="target model slug (default: auto from live list)")
+    p.add_argument("--negative", help="negative prompt to enhance alongside")
+    p.add_argument("--image", help="reference image (required for edit/animate types)")
+    p.add_argument("--output")
+    p.set_defaults(func=cmd_boost)
 
     p = sub.add_parser("embed", help="text embeddings")
     p.add_argument("--input", required=True)

@@ -39,9 +39,9 @@ export DEAPI_API_KEY="dpn-sk-..."
 **Hermes Agent:**
 
 ```bash
-mkdir -p ~/.hermes/skills/media
+mkdir -p ~/.hermes/skills/creative
 git clone https://github.com/deapi-ai/skills.git
-cp -r skills/deapi ~/.hermes/skills/media/deapi
+cp -r skills/deapi ~/.hermes/skills/creative/deapi
 ```
 
 **Claude Code:**

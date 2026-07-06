@@ -1,14 +1,17 @@
 ---
 name: deapi
 description: Generate and process media through the deAPI cloud API — text-to-image (FLUX.2 Klein and other open-source models), image editing, text-to-speech with voice cloning and voice design, audio/video transcription (YouTube, X, Twitch links or local files), OCR, background removal, image upscaling, music generation, text-to-video, image animation and text embeddings, plus a prompt booster. Use when the user asks to generate an image, speech, music or video, clone or design a voice, transcribe audio or a video link, extract text from an image, remove a background, upscale an image, animate a photo, enhance a generation prompt, create embeddings, or check their deAPI balance.
+version: 1.1.0
+author: deapi-ai
 license: MIT
+platforms: [linux, macos, windows]
 compatibility: Requires Python 3.9+ and internet access to api.deapi.ai
 metadata:
   author: deapi-ai
-  version: "1.0"
+  version: "1.1"
   hermes:
-    tags: [Media, Image Generation, TTS, Transcription, OCR, Video, Music, Embeddings]
-    category: media
+    tags: [media, image-generation, tts, voice-clone, transcription, ocr, video, music, embeddings]
+    category: creative
     requires_toolsets: [terminal]
 required_environment_variables:
   - name: DEAPI_API_KEY

@@ -1,14 +1,17 @@
 ---
 name: deapi
-description: Generate and process media through the deAPI cloud API — text-to-image (FLUX.2 Klein and other open-source models), image editing, text-to-speech, audio/video transcription (YouTube, X, Twitch links or local files), OCR, background removal, image upscaling, music generation, text-to-video and text embeddings. Use when the user asks to generate an image, speech, music or video, transcribe audio or a video link, extract text from an image, remove a background, upscale an image, create embeddings, or check their deAPI balance.
+description: Generate and process media through the deAPI cloud API — text-to-image (FLUX.2 Klein and other open-source models), image editing, text-to-speech with voice cloning and voice design, audio/video transcription (YouTube, X, Twitch links or local files), OCR, background removal, image upscaling, music generation, text-to-video, image animation and text embeddings, plus a prompt booster. Use when the user asks to generate an image, speech, music or video, clone or design a voice, transcribe audio or a video link, extract text from an image, remove a background, upscale an image, animate a photo, enhance a generation prompt, create embeddings, or check their deAPI balance.
+version: 1.1.0
+author: deapi-ai
 license: MIT
+platforms: [linux, macos, windows]
 compatibility: Requires Python 3.9+ and internet access to api.deapi.ai
 metadata:
   author: deapi-ai
-  version: "1.0"
+  version: "1.1"
   hermes:
-    tags: [Media, Image Generation, TTS, Transcription, OCR, Video, Music, Embeddings]
-    category: media
+    tags: [media, image-generation, tts, voice-clone, transcription, ocr, video, music, embeddings]
+    category: creative
     requires_toolsets: [terminal]
 required_environment_variables:
   - name: DEAPI_API_KEY
@@ -51,6 +54,8 @@ to stdout and downloads file results (prints the saved path).
 | Generate image | `python3 scripts/deapi.py image --prompt "a red fox, studio light" --output fox.png` |
 | Edit image | `python3 scripts/deapi.py edit --prompt "make it snowy" --image photo.jpg` |
 | Text-to-speech | `python3 scripts/deapi.py tts --text "Hello world" --output hello.mp3` |
+| Voice clone | `python3 scripts/deapi.py tts --text "Hi" --clone-audio sample.mp3 --model <voice-clone-capable slug>` |
+| Voice design | `python3 scripts/deapi.py tts --text "Hi" --instruct "warm British male narrator" --model <voice-design slug>` |
 | Transcribe URL | `python3 scripts/deapi.py stt --url "https://youtube.com/watch?v=..."` |
 | Transcribe file | `python3 scripts/deapi.py stt --file meeting.mp3 --timestamps` |
 | OCR | `python3 scripts/deapi.py ocr --image scan.png` |
@@ -58,6 +63,8 @@ to stdout and downloads file results (prints the saved path).
 | Upscale | `python3 scripts/deapi.py upscale --image small.png` |
 | Music | `python3 scripts/deapi.py music --caption "lofi hip hop, calm" --duration 30` |
 | Text-to-video | `python3 scripts/deapi.py video --prompt "waves at sunset"` |
+| Animate image | `python3 scripts/deapi.py animate --prompt "gentle camera pan" --image photo.png` |
+| Boost a prompt | `python3 scripts/deapi.py boost --prompt "a red fox" --type image` |
 | Embeddings | `python3 scripts/deapi.py embed --input "some text"` |
 | Balance | `python3 scripts/deapi.py balance` |
 

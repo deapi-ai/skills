@@ -1,0 +1,543 @@
+{
+ "_comment": "Synthetic catalog for tests. Field names follow the public OpenAPI spec (ClientDiffusionModelResource); values are made up and do not describe any account.",
+ "data": [
+  {
+   "slug": "Flux1schnell",
+   "name": "Example Flux Schnell",
+   "inference_types": [
+    "txt2img"
+   ],
+   "status": "standard_model",
+   "tags": [],
+   "info": {
+    "limits": {
+     "min_width": 256,
+     "max_width": 2048,
+     "min_height": 256,
+     "max_height": 2048,
+     "min_steps": 1,
+     "max_steps": 10,
+     "resolution_step": 128
+    },
+    "features": {
+     "supports_steps": true,
+     "supports_guidance": false,
+     "supports_negative_prompt": true
+    },
+    "defaults": {
+     "width": 768,
+     "height": 768,
+     "steps": 4
+    }
+   }
+  },
+  {
+   "slug": "Flux_2_Klein_4B_BF16",
+   "name": "Example Klein",
+   "inference_types": [
+    "txt2img",
+    "img2img"
+   ],
+   "status": "standard_model",
+   "tags": [],
+   "info": {
+    "limits": {
+     "min_width": 256,
+     "max_width": 1536,
+     "min_height": 256,
+     "max_height": 1536,
+     "min_steps": 4,
+     "max_steps": 4,
+     "resolution_step": 16,
+     "max_input_images": 3
+    },
+    "features": {
+     "supports_steps": true,
+     "supports_guidance": false,
+     "supports_negative_prompt": false,
+     "supports_custom_output_size": true
+    },
+    "defaults": {
+     "width": 1024,
+     "height": 1024,
+     "steps": 4
+    }
+   }
+  },
+  {
+   "slug": "partner-image-example",
+   "name": "Example partner image model",
+   "inference_types": [
+    "txt2img"
+   ],
+   "status": "test_model",
+   "tags": [
+    "test"
+   ],
+   "info": {
+    "limits": {
+     "min_width": 256,
+     "max_width": 2048,
+     "min_height": 256,
+     "max_height": 2048
+    },
+    "features": {
+     "supports_steps": false,
+     "supports_guidance": false,
+     "supports_quality": true
+    },
+    "defaults": {
+     "width": 1024,
+     "height": 1024
+    }
+   }
+  },
+  {
+   "slug": "QwenImageEdit_Plus_NF4",
+   "name": "Example Qwen Edit",
+   "inference_types": [
+    "img2img"
+   ],
+   "status": "standard_model",
+   "tags": [],
+   "info": {
+    "limits": {
+     "min_width": 256,
+     "max_width": 1024,
+     "min_height": 256,
+     "max_height": 1024,
+     "min_steps": 1,
+     "max_steps": 50,
+     "max_input_images": 1
+    },
+    "features": {
+     "supports_steps": true,
+     "supports_guidance": true,
+     "supports_negative_prompt": true
+    },
+    "defaults": {
+     "steps": 20
+    }
+   }
+  },
+  {
+   "slug": "Nanonets_Ocr_S_F16",
+   "name": "Example OCR",
+   "inference_types": [
+    "img2txt"
+   ],
+   "status": "standard_model",
+   "tags": [],
+   "info": {
+    "limits": {
+     "min_width": 128,
+     "max_width": 4096
+    },
+    "features": null,
+    "defaults": {}
+   }
+  },
+  {
+   "slug": "Ben2",
+   "name": "Example background removal",
+   "inference_types": [
+    "img-rmbg"
+   ],
+   "status": "standard_model",
+   "tags": [],
+   "info": {
+    "limits": {
+     "min_width": 128,
+     "max_width": 2048
+    },
+    "features": null,
+    "defaults": {}
+   }
+  },
+  {
+   "slug": "RealESRGAN_x4",
+   "name": "Example upscaler",
+   "inference_types": [
+    "img-upscale"
+   ],
+   "status": "standard_model",
+   "tags": [],
+   "info": {
+    "limits": {
+     "min_width": 128,
+     "max_width": 2048
+    },
+    "features": null,
+    "defaults": {}
+   }
+  },
+  {
+   "slug": "Ltx2_5_22B_Dist_INT8",
+   "name": "Example LTX video",
+   "inference_types": [
+    "txt2video",
+    "img2video",
+    "audio2video"
+   ],
+   "status": "standard_model",
+   "tags": [
+    "new"
+   ],
+   "info": {
+    "limits": {
+     "min_width": 512,
+     "max_width": 1344,
+     "min_height": 512,
+     "max_height": 1344,
+     "dimension_multiple": 64,
+     "min_fps": 24,
+     "max_fps": 24,
+     "min_frames": 49,
+     "max_frames": 241
+    },
+    "features": {
+     "supports_steps": false,
+     "supports_guidance": false,
+     "supports_negative_prompt": false,
+     "supports_last_frame": true
+    },
+    "defaults": {
+     "width": 768,
+     "height": 768,
+     "frames": 97,
+     "fps": 24
+    }
+   }
+  },
+  {
+   "slug": "WhisperLargeV3",
+   "name": "Example Whisper",
+   "inference_types": [
+    "audio2text",
+    "video2text",
+    "audio_file2text",
+    "video_file2text"
+   ],
+   "status": "standard_model",
+   "tags": [],
+   "info": {
+    "limits": {
+     "timestamp_levels": [
+      "segment"
+     ]
+    },
+    "features": {
+     "supports_timestamps": true,
+     "supports_diarization": false
+    },
+    "defaults": {}
+   }
+  },
+  {
+   "slug": "WhisperLargeV3Ct2",
+   "name": "Example Whisper Ct2",
+   "inference_types": [
+    "audio2text",
+    "video2text",
+    "audio_file2text",
+    "video_file2text"
+   ],
+   "status": "standard_model",
+   "tags": [
+    "new"
+   ],
+   "info": {
+    "limits": {
+     "timestamp_levels": [
+      "segment",
+      "word"
+     ]
+    },
+    "features": {
+     "supports_timestamps": true,
+     "supports_diarization": true
+    },
+    "defaults": {}
+   }
+  },
+  {
+   "slug": "Kokoro",
+   "name": "Example Kokoro",
+   "inference_types": [
+    "txt2audio"
+   ],
+   "status": "standard_model",
+   "tags": [],
+   "info": {
+    "limits": {
+     "min_text": 3,
+     "max_text": 10001,
+     "min_speed": 0.5,
+     "max_speed": 2,
+     "output_formats": [
+      "mp3"
+     ]
+    },
+    "features": {
+     "supports_custom_voice": true,
+     "supports_voice_clone": false,
+     "supports_voice_design": false
+    },
+    "defaults": {
+     "lang": "en-us",
+     "voice": "af_example",
+     "speed": 1,
+     "format": "mp3",
+     "sample_rate": 24000
+    }
+   },
+   "languages": [
+    {
+     "name": "English (US)",
+     "slug": "en-us",
+     "voices": [
+      {
+       "name": "Af_Example",
+       "slug": "af_example",
+       "gender": null
+      },
+      {
+       "name": "Am_Example",
+       "slug": "am_example",
+       "gender": null
+      }
+     ]
+    },
+    {
+     "name": "Spanish",
+     "slug": "es",
+     "voices": [
+      {
+       "name": "Ef_Example",
+       "slug": "ef_example",
+       "gender": null
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "slug": "Chatterbox",
+   "name": "Example Chatterbox",
+   "inference_types": [
+    "txt2audio"
+   ],
+   "status": "standard_model",
+   "tags": [],
+   "info": {
+    "limits": {
+     "min_text": 10,
+     "max_text": 2000,
+     "output_formats": [
+      "mp3"
+     ]
+    },
+    "features": {
+     "supports_custom_voice": true,
+     "supports_voice_clone": false,
+     "supports_voice_design": false
+    },
+    "defaults": {
+     "lang": "en",
+     "voice": "default",
+     "speed": 1,
+     "format": "mp3",
+     "sample_rate": 24000
+    }
+   },
+   "languages": [
+    {
+     "name": "English",
+     "slug": "en",
+     "voices": [
+      {
+       "name": "Default",
+       "slug": "default",
+       "gender": null
+      }
+     ]
+    },
+    {
+     "name": "Polish",
+     "slug": "pl",
+     "voices": [
+      {
+       "name": "Default",
+       "slug": "default",
+       "gender": null
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "slug": "Qwen3_TTS_12Hz_1_7B_CustomVoice",
+   "name": "Example Qwen voices",
+   "inference_types": [
+    "txt2audio"
+   ],
+   "status": "standard_model",
+   "tags": [],
+   "info": {
+    "limits": {
+     "min_text": 10,
+     "max_text": 5000,
+     "output_formats": [
+      "mp3"
+     ]
+    },
+    "features": {
+     "supports_custom_voice": true,
+     "supports_voice_clone": false,
+     "supports_voice_design": false
+    },
+    "defaults": {
+     "lang": "English",
+     "voice": "example_voice",
+     "speed": 1,
+     "format": "mp3",
+     "sample_rate": 24000
+    }
+   },
+   "languages": [
+    {
+     "name": "English",
+     "slug": "English",
+     "voices": [
+      {
+       "name": "Example_Voice",
+       "slug": "example_voice",
+       "gender": null
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "slug": "Example_TTS_Clone_Base",
+   "name": "Example voice clone",
+   "inference_types": [
+    "txt2audio"
+   ],
+   "status": "standard_model",
+   "tags": [],
+   "info": {
+    "limits": {
+     "min_text": 10,
+     "max_text": 5000,
+     "output_formats": [
+      "mp3"
+     ],
+     "min_ref_audio_duration": 5,
+     "max_ref_audio_duration": 15
+    },
+    "features": {
+     "supports_custom_voice": false,
+     "supports_voice_clone": true,
+     "supports_voice_design": false
+    },
+    "defaults": {
+     "lang": "English",
+     "speed": 1,
+     "format": "mp3",
+     "sample_rate": 24000
+    }
+   },
+   "languages": [
+    {
+     "name": "English",
+     "slug": "English",
+     "voices": []
+    }
+   ]
+  },
+  {
+   "slug": "Qwen3_TTS_12Hz_1_7B_VoiceDesign",
+   "name": "Example voice design",
+   "inference_types": [
+    "txt2audio"
+   ],
+   "status": "standard_model",
+   "tags": [],
+   "info": {
+    "limits": {
+     "min_text": 10,
+     "max_text": 5000,
+     "output_formats": [
+      "mp3"
+     ]
+    },
+    "features": {
+     "supports_custom_voice": false,
+     "supports_voice_clone": false,
+     "supports_voice_design": true
+    },
+    "defaults": {
+     "lang": "English",
+     "speed": 1,
+     "format": "mp3",
+     "sample_rate": 24000
+    }
+   },
+   "languages": [
+    {
+     "name": "English",
+     "slug": "English",
+     "voices": []
+    }
+   ]
+  },
+  {
+   "slug": "AceStep_1_5_Turbo",
+   "name": "Example music",
+   "inference_types": [
+    "txt2music"
+   ],
+   "status": "standard_model",
+   "tags": [],
+   "info": {
+    "limits": {
+     "min_steps": 8,
+     "max_steps": 8,
+     "min_guidance": 1,
+     "max_guidance": 1,
+     "min_duration": 10,
+     "max_duration": 300,
+     "min_bpm": 50,
+     "max_bpm": 200,
+     "output_formats": [
+      "mp3"
+     ],
+     "max_duration_by_format": {
+      "mp3": 300
+     }
+    },
+    "features": null,
+    "defaults": {
+     "format": "mp3"
+    }
+   }
+  },
+  {
+   "slug": "Bge_M3_FP16",
+   "name": "Example embeddings",
+   "inference_types": [
+    "txt2embedding"
+   ],
+   "status": "standard_model",
+   "tags": [],
+   "info": {
+    "limits": {
+     "max_input_tokens": 8192
+    },
+    "features": null,
+    "defaults": {}
+   }
+  }
+ ]
+}

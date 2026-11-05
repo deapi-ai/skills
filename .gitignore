@@ -17,7 +17,7 @@ Thumbs.db
 *.swo
 CLAUDE.md
 
-# Internal docs (not for public repo)
+# Local working files (never committed)
 docs/client-api-docs.json
 docs/test-results.md
 docs/pricing.md
@@ -26,3 +26,10 @@ docs/pricing.md
 # Python
 __pycache__/
 *.pyc
+.pytest_cache/
+*.part
+
+# Results of local runs and private scan patterns never belong in the repo
+deapi-output/
+*.leak-patterns
+leak-patterns*.txt

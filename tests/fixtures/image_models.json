@@ -1,0 +1,55 @@
+{
+  "_comment": "Synthetic model cards for tests/unit/test_image.py. Field names follow the public OpenAPI spec (ModelResource); every value is made up.",
+  "data": [
+    {
+      "slug": "example-quality-image",
+      "name": "Example partner model with quality presets",
+      "inference_types": ["txt2img", "img2img"],
+      "status": "test_model",
+      "tags": ["external"],
+      "info": {
+        "limits": {"min_width": 640, "max_width": 3840, "min_height": 640, "max_height": 3840,
+                   "max_pixels": 8294400, "max_ratio": 3, "dimension_multiple": 16,
+                   "max_input_images": 5, "quality_options": ["low", "medium", "high"]},
+        "features": {"supports_steps": false, "supports_guidance": false,
+                     "supports_negative_prompt": false, "supports_quality": true,
+                     "supports_custom_output_size": true},
+        "defaults": {"width": 1024, "height": 768, "quality": "medium"}
+      }
+    },
+    {
+      "slug": "ExampleLoraModel",
+      "name": "Example model with LoRAs",
+      "inference_types": ["txt2img"],
+      "status": "standard_model",
+      "tags": [],
+      "info": {
+        "limits": {"min_width": 256, "max_width": 2048, "min_height": 256, "max_height": 2048,
+                   "min_steps": 1, "max_steps": 10, "resolution_step": 128,
+                   "quality_options": []},
+        "features": {"supports_steps": true, "supports_guidance": false,
+                     "supports_negative_prompt": true},
+        "defaults": {"width": 768, "height": 768, "steps": 4}
+      },
+      "loras": [
+        {"name": "ExampleStyleLora", "display_name": "Example Style"},
+        {"name": "ExampleInkLora", "display_name": "Example Ink"}
+      ]
+    },
+    {
+      "slug": "ExampleEditStepsUnknown",
+      "name": "Example edit model whose card gives steps but no supports_steps",
+      "inference_types": ["img2img"],
+      "status": "standard_model",
+      "tags": [],
+      "info": {
+        "limits": {"min_width": 256, "max_width": 1024, "min_height": 256, "max_height": 1024,
+                   "min_steps": 1, "max_steps": 50, "max_input_images": 1,
+                   "quality_options": []},
+        "features": {"supports_guidance": false, "supports_negative_prompt": true,
+                     "supports_custom_output_size": false},
+        "defaults": {"steps": 40, "width": 768, "height": 768}
+      }
+    }
+  ]
+}

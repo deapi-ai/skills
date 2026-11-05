@@ -1,6 +1,6 @@
 # deAPI v2 REST — condensed reference
 
-Full docs: https://docs.deapi.ai (OpenAPI: https://docs.deapi.ai/openapi-v2.json)
+Full docs: https://docs.deapi.ai (OpenAPI: https://docs.deapi.ai/openapi.json)
 
 ## Auth & bases
 

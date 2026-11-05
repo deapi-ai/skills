@@ -40,8 +40,6 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            python: "3.9"
-          - os: ubuntu-latest
             python: "3.12"
           - os: windows-latest
             python: "3.12"
@@ -54,6 +52,18 @@ jobs:
       - name: Unit tests (offline, standard library only)
         run: python -m unittest discover -s tests/unit -t tests/unit -v
       - name: deapi-api docs and Python examples (Node, curl and SDK parts skip here)
+        run: python -m unittest tests/test_deapi_api.py -v
+
+  # The oldest supported Python (3.9, the macOS system Python). setup-python no longer
+  # ships it for current Ubuntu runners, so this job runs in the official image.
+  test-py39:
+    runs-on: ubuntu-latest
+    container: python:3.9-slim
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Unit tests (offline, standard library only)
+        run: python -m unittest discover -s tests/unit -t tests/unit -v
+      - name: deapi-api docs and Python examples
         run: python -m unittest tests/test_deapi_api.py -v
 
   examples:

@@ -35,6 +35,14 @@ ENV_RES = [re.compile(p, re.M) for p in (
 IGNORED_ENV = {"PYTHONUTF8", "PYTHONIOENCODING", "NO_COLOR"}
 
 
+def _rel(path):
+    """Path relative to the repository, or as given when it is on another drive (Windows)."""
+    try:
+        return os.path.relpath(path, ROOT)
+    except ValueError:
+        return path
+
+
 def split_frontmatter(text):
     if not text.startswith("---"):
         return None, text
@@ -198,7 +206,7 @@ def check_skill(skill_dir):
                 for pattern in PATH_RES:
                     if pattern.search(line):
                         errors.append("%s:%d: machine-specific path: %s"
-                                      % (os.path.relpath(doc, ROOT), number, line.strip()[:80]))
+                                      % (_rel(doc), number, line.strip()[:80]))
 
     for ref in sorted(set(re.findall(r"references/[A-Za-z0-9_./-]+", body))):
         ref = ref.rstrip(".")

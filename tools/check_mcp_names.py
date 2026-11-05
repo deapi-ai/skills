@@ -76,7 +76,10 @@ def check(known, files):
     errors = []
     known = set(known)
     for path in files:
-        rel = os.path.relpath(path, ROOT).replace("\\", "/")
+        try:
+            rel = os.path.relpath(path, ROOT).replace("\\", "/")
+        except ValueError:  # Windows: path and repository on different drives
+            rel = path.replace("\\", "/")
         with open(path, encoding="utf-8") as handle:
             for number, line in enumerate(handle, 1):
                 for name in re.findall(r"mcp__deapi__([A-Za-z0-9_]+)", line):

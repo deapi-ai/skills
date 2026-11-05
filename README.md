@@ -98,7 +98,7 @@ python3 deapi/scripts/deapi.py balance
 - **OpenAI-compatible API:** `https://oai.deapi.ai/v1` works with OpenAI SDKs for images,
   speech, transcriptions, embeddings and videos.
 - **Native REST API:** [docs.deapi.ai](https://docs.deapi.ai)
-  (OpenAPI: [openapi-v2.json](https://docs.deapi.ai/openapi-v2.json)).
+  (OpenAPI: [openapi.json](https://docs.deapi.ai/openapi.json)).
 
 ## Skill format
 

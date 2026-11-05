@@ -155,6 +155,7 @@ class AccountTests(CliTest):
         self.fake.key = dict(self.fake.key, role="admin", limit=None, limit_remaining=None)
         res = self.run_cli("doctor")
         self.assertEqual(len(res.json["warnings"]), 2)
+        self.assertTrue(res.json["ok"])
 
     def test_doctor_without_key(self):
         res = self.run_cli("doctor", env={})

@@ -447,6 +447,51 @@ class TranscribeTests(AudioTest):
         res = self.run_cli("transcribe", "https://youtu.be/abc", "--duration", "0")
         self.assertEqual(res.code, core.EXIT_USAGE)
 
+    def test_quote_by_length_without_source(self):
+        res = self.run_cli("transcribe", "--duration", "7200", "--quote")
+        self.assertEqual(res.code, 0, res.err)
+        quote = self.quote()
+        self.assertEqual(quote.path, "/api/v2/audio/transcriptions/price")
+        self.assertEqual(quote.field("duration_seconds"), "7200.0")
+        self.assertEqual(quote.field("model"), "WhisperLargeV3Ct2")
+        for absent in ("platform", "source_url", "include_metadata"):
+            self.assertIsNone(quote.field(absent), absent)
+        self.assertEqual(quote.files, {})
+        self.assertEqual(self.fake.submissions(), [])
+        out = res.json
+        self.assertTrue(out["quote_only"])
+        self.assertEqual((out["platform"], out["duration_seconds"], out["duration_from"]),
+                         ("file", 7200.0, "--duration"))
+        self.assertEqual(out["max_cost"], 0.25)
+        self.assertIn("note", out)
+
+    def test_quote_by_length_for_a_platform(self):
+        res = self.run_cli("transcribe", "--duration", "3600", "--platform", "x", "--diarize",
+                           "--metadata", "--quote")
+        self.assertEqual(res.code, 0, res.err)
+        quote = self.quote()
+        self.assertEqual((quote.field("platform"), quote.field("diarize"),
+                          quote.field("include_metadata")), ("twitter", "1", "1"))
+        self.assertEqual(res.json["platform"], "twitter")
+        res = self.run_cli("transcribe", "--duration", "45", "--platform", "tiktok", "--quote")
+        self.assertEqual(self.quote().field("platform"), "tiktok")
+
+    def test_length_without_source_needs_quote(self):
+        res = self.run_cli("transcribe", "--duration", "7200")
+        self.assertEqual(res.code, core.EXIT_USAGE)
+        self.assertIn("--duration SECONDS --quote", res.error["hint"])
+        self.assertIn("Never invent a link", res.error["hint"])
+        res = self.run_cli("transcribe", "--quote")
+        self.assertEqual(res.code, core.EXIT_USAGE)
+        self.assertEqual(self.fake.calls, [])
+
+    def test_platform_only_without_source(self):
+        res = self.run_cli("transcribe", "https://youtu.be/abc", "--platform", "youtube",
+                           "--quote")
+        self.assertEqual(res.code, core.EXIT_USAGE)
+        self.assertIn("--platform", res.error["message"])
+        self.assertEqual(self.fake.calls, [])
+
     def test_json_transcript_summary(self):
         doc = fakeapi.load_fixture("audio_transcript.json")
         self.fake.result_text = json.dumps(doc)

@@ -4,7 +4,9 @@
 - top-level fields: only name, description, license, compatibility, metadata
   (allowed-tools is valid in the spec but not used here)
 - name: 1-64 chars, a-z0-9 and single hyphens, equal to the folder name
-- description: 1-1024 chars, no < or >, first sentence <= 60 chars ending with "."
+- description: 1-1024 chars, no < or >; the first sentence ends with "." and names deAPI
+  within 57 chars, because Hermes shows only about 57 characters of it in its skill index
+  (60 with "...", cut at a word boundary)
 - compatibility: <= 500 chars
 - SKILL.md under 500 lines
 - no machine-specific paths (/tmp, C:\\Users, /home/...) in SKILL.md or references/
@@ -23,6 +25,7 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ALLOWED_FIELDS = {"name", "description", "license", "compatibility", "metadata"}
+FIRST_SENTENCE_MAX = 57
 NAME_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 PATH_RES = [re.compile(p) for p in (r"(?<![\w.])/tmp/", r"[A-Za-z]:\\Users\\", r"(?<![\w.~])/home/")]
 ENV_RES = [re.compile(p, re.M) for p in (
@@ -182,9 +185,9 @@ def check_skill(skill_dir):
         if "<" in desc or ">" in desc:
             errors.append("%s: description must not contain < or >" % name)
         first = first_sentence(desc)
-        if len(first) > 60 or not first.endswith("."):
-            errors.append("%s: first sentence must be <= 60 chars and end with '.': %r (%d)"
-                          % (name, first, len(first)))
+        if len(first) > FIRST_SENTENCE_MAX or not first.endswith(".") or "deAPI" not in first:
+            errors.append("%s: first sentence must name deAPI, end with '.' and have at most "
+                          "%d chars: %r (%d)" % (name, FIRST_SENTENCE_MAX, first, len(first)))
     compat = fields.get("compatibility")
     if compat is not None and (not isinstance(compat, str) or not 1 <= len(compat) <= 500):
         errors.append("%s: compatibility must be 1-500 chars" % name)

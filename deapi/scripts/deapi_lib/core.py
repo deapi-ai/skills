@@ -84,8 +84,9 @@ EXIT_NAMES = {
 
 KEY_HELP = (
     "Set the DEAPI_API_KEY environment variable where the agent runs: "
-    "`export DEAPI_API_KEY=...` in your shell profile, a `DEAPI_API_KEY=...` line in "
-    "~/.hermes/.env for Hermes, or your agent's environment settings. Create a key at "
+    "`export DEAPI_API_KEY=...` in your shell profile, for Hermes a `DEAPI_API_KEY=...` "
+    "line in the .env file of the Hermes home folder (`hermes config env-path` shows "
+    "where it is), or your agent's environment settings. Create a key at "
     "https://app.deapi.ai (Settings > API Keys). Never paste the key into the chat."
 )
 SSL_HINT = (
@@ -422,7 +423,8 @@ def validate_base_url(url):
 
 
 def resolve_max_cost(flag_value, environ=None):
-    environ = os.environ if environ is None else environ
+    if environ is None:
+        environ = {MAX_COST_ENV: os.getenv(MAX_COST_ENV, "")}
     if flag_value is not None:
         value, source = flag_value, "--max-cost"
     elif environ.get(MAX_COST_ENV, "").strip():
@@ -1136,7 +1138,10 @@ class Context(object):
     def __init__(self, base_url=DEFAULT_BASE_URL, timeout=DEFAULT_TIMEOUT, out_dir=".",
                  max_cost=None, key_file=None, quiet=False, allow_hidden_path=False,
                  environ=None):
-        self.environ = os.environ if environ is None else environ
+        if environ is None:
+            # Only the variables this skill uses are read, one by one.
+            environ = {name: os.getenv(name, "") for name in (KEY_ENV, MAX_COST_ENV)}
+        self.environ = environ
         self.base_url = validate_base_url(base_url or DEFAULT_BASE_URL)
         parsed = urllib.parse.urlparse(self.base_url)
         self.api_host = (parsed.hostname or "").lower()
@@ -1398,6 +1403,10 @@ class Context(object):
         payload = self._post(path + "/price", json_body, fields, files, mode="quote")
         return Quote.parse(payload)
 
+    def limit_info(self):
+        """The cost limit in force, for every paid command's output."""
+        return {"max_cost": self.max_cost, "max_cost_source": self.max_cost_source}
+
     def enforce_budget(self, total, quote, command=None):
         """Exit 5 when the quoted total is unknown or above --max-cost."""
         if total is None:
@@ -1405,7 +1414,8 @@ class Context(object):
                 "deAPI could not price this request in advance, so the cost limit cannot "
                 "be checked.", EXIT_OVER_BUDGET, "Ask the user before running it; only the "
                 "user may raise --max-cost or $DEAPI_MAX_COST.", price=None,
-                max_cost=self.max_cost, estimate_basis=quote.estimate_basis)
+                max_cost=self.max_cost, max_cost_source=self.max_cost_source,
+                estimate_basis=quote.estimate_basis)
         if total > self.max_cost + 1e-12:
             raise DeapiError(
                 "Quoted price %s USD%s is above the cost limit of %s USD (%s)." % (
@@ -1414,7 +1424,7 @@ class Context(object):
                 "Show the price to the user and ask. Never raise --max-cost yourself; "
                 "the user may rerun with a higher --max-cost.",
                 price=total, is_estimated=quote.is_estimated, max_cost=self.max_cost,
-                command=command)
+                max_cost_source=self.max_cost_source, command=command)
 
     def warn_key_limit(self, total):
         """Before a larger job, warn when the key's remaining limit looks too low."""
@@ -1630,6 +1640,7 @@ class Context(object):
         total = None if quote.price is None else round(quote.price * count, 8)
         summary = {"command": job.command, "model": slug, "quoted_price": quote.price,
                    "is_estimated": quote.is_estimated}
+        summary.update(self.limit_info())
         if quote.estimate_basis:
             summary["estimate_basis"] = quote.estimate_basis
         if count > 1:
@@ -1647,7 +1658,7 @@ class Context(object):
             warn("the cost limit is %s USD (%s), above the default %s USD" % (
                 _fmt_usd(self.max_cost), self.max_cost_source, _fmt_usd(DEFAULT_MAX_COST)))
         if getattr(args, "quote", False):
-            summary.update({"quote_only": True, "max_cost": self.max_cost,
+            summary.update({"quote_only": True,
                             "within_max_cost": total is not None and total <= self.max_cost,
                             "params": job.public_params()})
             return summary

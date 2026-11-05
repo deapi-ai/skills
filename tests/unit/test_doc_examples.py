@@ -40,7 +40,8 @@ def _calls(line):
     out = []
     for match in CALL.finditer(line):
         cmd = re.split(r"\s(?:\||&&|;|>|2>)\s", match.group(1))[0].strip()
-        if not cmd or cmd.startswith("<") or cmd in ("...",):
+        # "<command> ..." is a placeholder, "deapi.py *" a permission-rule pattern.
+        if not cmd or cmd.startswith(("<", "*")) or cmd in ("...",):
             continue
         out.append((line.strip(), cmd))
     return out

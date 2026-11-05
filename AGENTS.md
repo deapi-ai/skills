@@ -20,9 +20,13 @@ commit is published.
   (`urllib.request.urlopen(...)`) so tests and wrappers can replace it.
 - The API key comes only from `DEAPI_API_KEY` (or `--key-file`). It is sent only to the API host
   (`*.deapi.ai`); never to result links, never printed, logged or written to disk.
+  Read variables one by one (`os.getenv`, `os.environ.get`), never `os.environ[...]` or the
+  whole mapping, and never write an agent's secrets file path literally: agent skill
+  scanners refuse such skills (`tools/check_skill_safety.py` checks it).
 - Every paid command quotes first (`POST .../price`, free), compares the quote with the cost
   limit (`--max-cost`, `$DEAPI_MAX_COST`, default 0.25 USD) and supports `--quote`. The agent
-  never raises the limit on its own.
+  never raises the limit on its own. Its output (also `--quote`) carries `max_cost` and
+  `max_cost_source`, the limit in force.
 - Paid POSTs are retried only on HTTP 429. Exit codes are listed in `deapi_lib/core.py`.
 - JSON on stdout, diagnostics on stderr. Results go to `--out-dir`, named after the request ID,
   never overwriting files.

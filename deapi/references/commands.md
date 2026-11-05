@@ -33,7 +33,7 @@ Every command except `models`, `status`, `account` and `doctor` has these.
 
 | Flag | Meaning |
 |---|---|
-| `--quote`, `--price-only` | Free price quote only; nothing is submitted. Prints `"quoted_price"`, `is_estimated`, `max_cost`, `within_max_cost`, `model` and `params`. |
+| `--quote`, `--price-only` | Free price quote only; nothing is submitted. Prints `"quoted_price"`, `is_estimated`, `max_cost` (the limit in force) and `max_cost_source`, `within_max_cost`, `model` and `params`. |
 | `--max-cost USD` | Largest price this run may spend. Default: `DEAPI_MAX_COST` if the user set it, else 0.25. **Only the user raises it.** |
 | `--model SLUG` | Use this model (must exist in `deapi.py models` and fit the task, else exit 7). |
 | `--allow-partner-models` | Let automatic selection pick partner models (priced as estimates). |
@@ -202,10 +202,13 @@ Twitch, Kick, TikTok links; local audio (up to 20 MB) or video (up to 50 MB); `j
 | `--diarize` | Speaker labels (costs more; implies timestamps). |
 | `--subtitles srt\|vtt` | Also write subtitles, built locally from the timed segments (no extra cost). |
 | `--metadata` | Source title and channel, for links (small surcharge). |
-| `--duration SEC` | Length for the quote. **Required for TikTok** (ask the user). For a file it is used only when the length cannot be read (spares a second upload); a measured length always wins when it is longer. Ignored for other links: deAPI prices them from the link. |
+| `--duration SEC` | Length for the quote. **Required for TikTok** (ask the user). For a file it is used only when the length cannot be read (spares a second upload); a measured length always wins when it is longer. Ignored for other links: deAPI prices them from the link. Without a source and with `--quote`: the price for that length alone. |
+| `--platform file\|youtube\|x\|twitch\|kick\|tiktok` | Only with `--duration SEC --quote` and no source: price the length as deAPI prices that source (default `file`). Some models price per platform, and TikTok by length bands. |
 
 The script reads the length of WAV, MP3, MP4/M4A/MOV, FLAC and OGG files itself (or with
-`ffprobe`) and quotes by duration without uploading. Result: `text_file`, `preview`,
+`ffprobe`) and quotes by duration without uploading. A price question without a link or a
+file ("how much for a 2-hour YouTube video?") is `transcribe --duration 7200 --platform
+youtube --quote`; never invent a link for it. Result: `text_file`, `preview`,
 `language`, `segments`, `speakers`, and `subtitles_file` when asked.
 
 ## Text
@@ -233,11 +236,12 @@ command would pick). Prompts must have at least 3 characters. Use the returned
 | `models [SLUG] [--type TASK] [--details] [--oai]` | Models this key may use. `--type` takes a command name (`image`, `tts`, `transcribe`, ...) or an inference type (`txt2img`). `SLUG` shows one full model card; `--details`/`--json` full cards (limits, features, defaults, languages, voices); `--oai` the model IDs of the OpenAI-compatible API (it may list models for endpoints this skill does not use, such as chat). |
 | `status ID [--wait] [--download] [--format jpg\|webp] [--output NAME]` | A job by `request_id` (or `job:<id>`): status, progress, price, result. `--wait` until it finishes, `--download` saves the result. For a running job: wait, do not submit again. |
 | `account` (alias `balance`) `[--days N \| --from DATE --to DATE]` | The key's role, spend limit and what is left, usage for the period (default 30 days, up to 90), and the balance with an ADMIN key. |
-| `doctor` | Python version, `ffprobe`, whether the key is set (never its value), connection and latency, key role and limits, rate-limit headers, the OpenAI-compatible API. `"ok": true` when there are no warnings. |
+| `doctor` | Python version, `ffprobe`, whether the key is set (never its value), connection and latency, key role and limits, rate-limit headers, the OpenAI-compatible API. `"ok": true` when the script can run jobs; `problems` lists what blocks it, `warnings` are advice (an ADMIN key, no spend limit) and do not make `ok` false. |
 
 ## Output
 
 - stdout: one JSON object. Paid jobs: `command`, `model`, `"quoted_price"`, `is_estimated`,
+  `max_cost` and `max_cost_source` (the cost limit in force),
   `request_id`, `status`, `price`, `seed` (where used), and `files` (saved paths) or
   `text_file` + `preview` + `chars`. With `--count` the jobs are in `results` and `price`
   is the total.

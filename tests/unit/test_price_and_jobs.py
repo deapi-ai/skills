@@ -43,6 +43,27 @@ class QuoteTests(CliTest):
                            env={"DEAPI_API_KEY": "sk-dp-0-TESTKEYNOTREAL", "DEAPI_MAX_COST": "1"})
         self.assertEqual(res.code, core.EXIT_OVER_BUDGET)
 
+    def test_every_paid_result_shows_the_limit_in_force(self):
+        env = {"DEAPI_API_KEY": "sk-dp-0-TESTKEYNOTREAL", "DEAPI_MAX_COST": "0.15"}
+        res = self.run_cli("image", "--prompt", "fox", env=env)
+        self.assertEqual(res.code, 0, res.err)
+        self.assertEqual((res.json["max_cost"], res.json["max_cost_source"]),
+                         (0.15, "DEAPI_MAX_COST"))
+        res = self.run_cli("image", "--prompt", "fox", "--quote", env=env)
+        self.assertEqual((res.json["max_cost"], res.json["max_cost_source"]),
+                         (0.15, "DEAPI_MAX_COST"))
+        res = self.run_cli("image", "--prompt", "fox", "--max-cost", "0.1925")
+        self.assertEqual((res.json["max_cost"], res.json["max_cost_source"]),
+                         (0.1925, "--max-cost"))
+        res = self.run_cli("embed", "hello world")
+        self.assertEqual(res.code, 0, res.err)
+        self.assertEqual((res.json["max_cost"], res.json["max_cost_source"]), (0.25, "default"))
+        self.fake.price = 0.30
+        res = self.run_cli("image", "--prompt", "fox", env=env)
+        self.assertEqual(res.code, core.EXIT_OVER_BUDGET)
+        self.assertEqual((res.error["max_cost"], res.error["max_cost_source"]),
+                         (0.15, "DEAPI_MAX_COST"))
+
     def test_bad_max_cost(self):
         res = self.run_cli("image", "--prompt", "fox", "--max-cost", "-1")
         self.assertEqual(res.code, core.EXIT_USAGE)

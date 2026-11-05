@@ -20,4 +20,5 @@ run python tools/check_openapi.py
 run python tools/check_mcp_names.py
 run python tools/scan_leaks.py
 run python tools/check_frontmatter.py
+run python tools/check_skill_safety.py
 exit $status

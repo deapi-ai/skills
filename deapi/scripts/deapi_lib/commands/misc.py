@@ -383,10 +383,11 @@ def _days_until(stamp):
     return (when - _utc_now()).total_seconds() / 86400.0
 
 
-def _key_warnings(key, max_cost):
-    warnings = []
+def _key_checks(key, max_cost):
+    """(problems, warnings): problems stop paid jobs, warnings are advice."""
+    problems, warnings = [], []
     if key.get("status") not in (None, "active"):
-        warnings.append("The key status is %s; it cannot run jobs." % key.get("status"))
+        problems.append("The key status is %s; it cannot run jobs." % key.get("status"))
     if key.get("role") == "admin":
         warnings.append("This is an ADMIN key. For agents, use a dedicated API-role key with "
                         "a daily spend limit (Dashboard > Settings > API Keys).")
@@ -394,7 +395,7 @@ def _key_warnings(key, max_cost):
         warnings.append("This key has no spend limit; a daily limit protects against runaway "
                         "costs (Dashboard > Settings > API Keys).")
     elif key.get("limit") == 0:
-        warnings.append("This key's spend limit is 0, so it cannot run paid jobs.")
+        problems.append("This key's spend limit is 0, so it cannot run paid jobs.")
     remaining = key.get("limit_remaining")
     if isinstance(remaining, (int, float)) and remaining < max_cost:
         warnings.append("Only %s USD of the key's spend limit is left (resets %s)."
@@ -402,7 +403,7 @@ def _key_warnings(key, max_cost):
     days = _days_until(key.get("expires_at"))
     if days is not None and 0 <= days < EXPIRY_WARN_DAYS:
         warnings.append("The key expires on %s." % key.get("expires_at"))
-    return warnings
+    return problems, warnings
 
 
 def _key_source(ctx):
@@ -415,9 +416,9 @@ def cmd_doctor(ctx, args):
            "python_ok": version >= (3, 9), "os": platform.system() or None,
            "ffprobe": bool(shutil.which("ffprobe")), "base_url": ctx.base_url,
            "key_set": False, "max_cost": ctx.max_cost, "max_cost_source": ctx.max_cost_source,
-           "warnings": [], "notes": []}
+           "problems": [], "warnings": [], "notes": []}
     if not out["python_ok"]:
-        out["warnings"].append("Python 3.9 or newer is required.")
+        out["problems"].append("Python 3.9 or newer is required.")
     if not out["ffprobe"]:
         out["notes"].append("ffprobe not found: durations of non-WAV local files are not "
                             "read, so transcription of such files is quoted with the upload.")
@@ -425,7 +426,7 @@ def cmd_doctor(ctx, args):
         ctx.api_key()
     except core.DeapiError as exc:
         # A diagnosis, not a failure: say what is missing and how to set it.
-        out["warnings"].append("%s %s" % (exc.message, exc.hint or ""))
+        out["problems"].append("%s %s" % (exc.message, exc.hint or ""))
         out["ok"] = False
         return out
     out["key_set"] = True
@@ -440,7 +441,9 @@ def cmd_doctor(ctx, args):
     out["api"] = "ok"
     out["latency_ms"] = int((time.perf_counter() - started) * 1000)
     out["key"] = key
-    out["warnings"].extend(_key_warnings(key, ctx.max_cost))
+    problems, warnings = _key_checks(key, ctx.max_cost)
+    out["problems"].extend(problems)
+    out["warnings"].extend(warnings)
     limits = {"account_endpoints": _rate_limits(resp.headers)}
 
     try:
@@ -449,7 +452,8 @@ def cmd_doctor(ctx, args):
         out["models_available"] = meta.get("total")
         limits["models_and_prices"] = _rate_limits(resp.headers)
     except core.DeapiError as exc:
-        out["warnings"].append("GET /api/v2/models failed: %s" % exc.message)
+        # Every command picks its model from this list.
+        out["problems"].append("GET /api/v2/models failed: %s" % exc.message)
     out["rate_limits"] = limits if any(limits.values()) else None
     if out["rate_limits"] is None:
         out["notes"].append("The API sent no X-RateLimit-* headers on these requests.")
@@ -472,7 +476,9 @@ def cmd_doctor(ctx, args):
     except core.DeapiError as exc:
         out["oai"] = {"base_url": ctx.oai_url("/v1"), "status": "failed"}
         out["warnings"].append("OpenAI-compatible API check failed: %s" % exc.message)
-    out["ok"] = not out["warnings"]
+    # ok: the script can run jobs. Warnings (an ADMIN key, no spend limit, ...) are advice
+    # to pass on to the user; they do not make the setup fail.
+    out["ok"] = not out["problems"]
     return out
 
 
@@ -635,13 +641,14 @@ def cmd_boost(ctx, args):
 
     summary = {"command": "boost", "model": target["slug"], "type": boost_type,
                "quoted_price": quote.price, "is_estimated": quote.is_estimated}
+    summary.update(ctx.limit_info())
     log_price = "unknown" if quote.price is None else core._fmt_usd(quote.price)
     core.log("quote: %s USD" % log_price)
     if args.quote:
         params = dict(fields)
         for part in files:
             params[part.field] = part.public()
-        summary.update({"quote_only": True, "max_cost": ctx.max_cost,
+        summary.update({"quote_only": True,
                         "within_max_cost": quote.price is not None
                         and quote.price <= ctx.max_cost, "params": params})
         return summary

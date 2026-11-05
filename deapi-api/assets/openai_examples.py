@@ -33,8 +33,11 @@ def make_client():
     if not ((parts.scheme == "https" and host.endswith(".deapi.ai")) or
             (parts.scheme == "http" and host in ("127.0.0.1", "localhost"))):
         raise SystemExit("refusing to send the API key to %r" % host)
+    key = os.environ.get("DEAPI_API_KEY")
+    if not key:
+        raise SystemExit("set DEAPI_API_KEY")
     # A second client next to any OpenAI client of the app; do not set OPENAI_BASE_URL globally.
-    return OpenAI(api_key=os.environ["DEAPI_API_KEY"], base_url=base_url,
+    return OpenAI(api_key=key, base_url=base_url,
                   timeout=900.0)   # jobs hold the connection until they finish
 
 

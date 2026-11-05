@@ -41,7 +41,7 @@ Use the key from an environment variable, not typed into a config file or a comm
 }
 ```
 
-Tools then appear as `mcp__deapi__<tool>`, for example `mcp__deapi__text_to_image`. With
+Tools then appear as `mcp__deapi__{tool}`, for example `mcp__deapi__text_to_image`. With
 another server name the prefix changes. Whether `claude mcp add --scope user` keeps
 `${DEAPI_API_KEY}` unexpanded is not verified; prefer `.mcp.json`.
 
@@ -54,9 +54,9 @@ bearer_token_env_var = "DEAPI_API_KEY"
 ```
 
 **Hermes Agent**: a deAPI entry from the Hermes MCP catalog reads the key from
-`MCP_DEAPI_API_KEY` (Hermes names it `MCP_<SERVER>_API_KEY`). Put the same key in
-`~/.hermes/.env` under both names: `DEAPI_API_KEY` for the script and `MCP_DEAPI_API_KEY`
-for MCP.
+`MCP_DEAPI_API_KEY` (Hermes names it `MCP_{SERVER}_API_KEY`). Put the same key in the
+`.env` file of the Hermes home folder (`hermes config env-path` prints where it is) under
+both names: `DEAPI_API_KEY` for the script and `MCP_DEAPI_API_KEY` for MCP.
 
 **Apps without config files** (claude.ai connectors, ChatGPT apps): OAuth.
 

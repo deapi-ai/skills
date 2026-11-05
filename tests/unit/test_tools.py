@@ -1,4 +1,4 @@
-"""Tests for the repository tools (frontmatter, leak scan, MCP names)."""
+"""Tests for the repository tools (frontmatter, leak scan, MCP names, scanner patterns)."""
 
 import importlib.util
 import os
@@ -19,10 +19,11 @@ def load_tool(name):
 frontmatter = load_tool("check_frontmatter")
 leaks = load_tool("scan_leaks")
 mcp_names = load_tool("check_mcp_names")
+safety = load_tool("check_skill_safety")
 
 GOOD = '''---
 name: demo
-description: Transcribes audio and generates images, video and speech. Uses deAPI for many media jobs. Quotes the price before every paid job.
+description: Transcribes audio and makes images and video via deAPI. Uses deAPI for many media jobs. Quotes the price before every paid job.
 license: MIT
 compatibility: Runs in agents with a terminal and network access. Needs Python 3.9+ and DEAPI_API_KEY.
 metadata:
@@ -65,8 +66,14 @@ class FrontmatterTests(unittest.TestCase):
         self.assertTrue(any("unexpected top-level" in e for e in errors))
 
     def test_long_first_sentence(self):
-        errors = self.write(GOOD.replace("Transcribes audio and generates images, video and speech.",
-                                         "Transcribes audio and generates images, video, music and speech."))
+        # 60 chars: the Hermes skill index would cut it before "deAPI".
+        errors = self.write(GOOD.replace("Transcribes audio and makes images and video via deAPI.",
+                                         "Transcribes audio, makes images, video and speech via deAPI."))
+        self.assertTrue(any("first sentence" in e for e in errors))
+
+    def test_first_sentence_names_deapi(self):
+        errors = self.write(GOOD.replace("Transcribes audio and makes images and video via deAPI.",
+                                         "Transcribes audio and makes images and video."))
         self.assertTrue(any("first sentence" in e for e in errors))
 
     def test_angle_brackets_and_length(self):
@@ -87,8 +94,8 @@ class FrontmatterTests(unittest.TestCase):
         errors = self.write(GOOD.replace("Uses deAPI for many", "Uses deAPI: for many"))
         self.assertTrue(any("needs quotes" in e for e in errors), errors)
         quoted = GOOD.replace(
-            "description: Transcribes audio and generates images, video and speech. Uses deAPI for many media jobs. Quotes the price before every paid job.",
-            'description: "Transcribes audio and generates images, video and speech. Uses deAPI: many media jobs."')
+            "description: Transcribes audio and makes images and video via deAPI. Uses deAPI for many media jobs. Quotes the price before every paid job.",
+            'description: "Transcribes audio and makes images and video via deAPI. Uses deAPI: many media jobs."')
         self.assertEqual(self.write(quoted), [])
 
     def test_undeclared_env_var(self):
@@ -169,3 +176,46 @@ class McpNamesTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SkillSafetyTests(unittest.TestCase):
+    def check(self, name, text):
+        tmp = tempfile.mkdtemp()
+        try:
+            skill = os.path.join(tmp, "demo")
+            os.makedirs(os.path.join(skill, "scripts"))
+            with open(os.path.join(skill, "SKILL.md"), "w", encoding="utf-8") as handle:
+                handle.write("---\nname: demo\n---\n")
+            with open(os.path.join(skill, "scripts", name), "w", encoding="utf-8") as handle:
+                handle.write(text)
+            return safety.check_skill(skill)
+        finally:
+            shutil.rmtree(tmp)
+
+    def test_blocked_patterns(self):
+        # Assembled from parts so this file never holds the patterns verbatim.
+        env = "os." + "environ"
+        samples = {
+            "secrets file path": ("a.md", "a line in ~/" + ".hermes/.env\n"),
+            "os.environ access": ("a.py", "key = " + env + '["DEAPI_API_KEY"]\n'),
+            "process.env[...]": ("a.ts", "const k = process." + 'env["DEAPI_API_KEY"];\n'),
+            "chat-role tag": ("a.md", "Tools appear as `mcp__deapi__<" + "tool>`.\n"),
+        }
+        for label, (name, text) in samples.items():
+            errors = self.check(name, text)
+            self.assertTrue(any(label in e for e in errors), (label, errors))
+        self.assertTrue(self.check("b.py", "environ = " + env + " if x else y\n"))
+
+    def test_allowed_forms(self):
+        env = "os." + "environ"
+        text = (env + '.get("DEAPI_API_KEY", "")\nos.getenv("DEAPI_MAX_COST")\n'
+                "# " + env + " is never read as a whole\n"
+                "const k = process.env.DEAPI_API_KEY;\n"
+                "Tools appear as `mcp__deapi__{tool}`; the Hermes .env file.\n")
+        self.assertEqual(self.check("ok.py", text), [])
+
+    def test_repository_is_clean(self):
+        errors = []
+        for skill in safety.skill_dirs():
+            errors.extend(safety.check_skill(skill))
+        self.assertEqual(errors, [])

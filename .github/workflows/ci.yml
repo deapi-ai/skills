@@ -24,6 +24,8 @@ jobs:
           python-version: "3.12"
       - name: Frontmatter and skill layout
         run: python tools/check_frontmatter.py
+      - name: Patterns that agent skill scanners block
+        run: python tools/check_skill_safety.py
       - name: Agent Skills reference validator
         run: |
           python -m pip install "skills-ref==0.1.1"

@@ -197,7 +197,8 @@ class DoctorTest(CliTest):
         self.assertEqual(res.code, 0)
         self.assertFalse(res.json["key_set"])
         self.assertFalse(res.json["ok"])
-        self.assertIn("DEAPI_API_KEY", " ".join(res.json["warnings"]))
+        self.assertIn("DEAPI_API_KEY", " ".join(res.json["problems"]))
+        self.assertNotIn("DEAPI_API_KEY", " ".join(res.json["warnings"]))
         self.assertIn("python", res.json)
         self.assertEqual(self.fake.calls, [])
 
@@ -220,6 +221,7 @@ class DoctorTest(CliTest):
         self.assertEqual(out["rate_limits"]["models_and_prices"]["source"], "tier")
         self.assertEqual(out["oai"]["status"], "ok")
         self.assertEqual(out["warnings"], [])
+        self.assertEqual(out["problems"], [])
         self.assertTrue(out["ok"])
         self.assertNotIn("preview", out["key"])
         self.assertNotIn(TEST_KEY, res.out + res.err)
@@ -235,7 +237,9 @@ class DoctorTest(CliTest):
         self.assertIn("ADMIN key", text)
         self.assertIn("no spend limit", text)
         self.assertEqual(res.json["balance"], 12.5)
-        self.assertFalse(res.json["ok"])
+        # Warnings alone: the setup works, so ok stays true.
+        self.assertTrue(res.json["ok"])
+        self.assertEqual(res.json["problems"], [])
         self.assertIsNone(res.json["rate_limits"])
 
     def test_low_remaining_limit_and_expiry_warn(self):
@@ -255,11 +259,30 @@ class DoctorTest(CliTest):
         self.assertEqual(res.error["report"]["api"], "failed")
         self.assertNotIn(TEST_KEY, res.out + res.err)
 
+    def test_blocking_key_states_are_problems(self):
+        self.fake.key = dict(self.fake.key, status="revoked")
+        res = self.run_cli("doctor")
+        self.assertEqual(res.code, 0, res.err)
+        self.assertFalse(res.json["ok"])
+        self.assertIn("revoked", " ".join(res.json["problems"]))
+        self.fake.key = dict(self.fake.key, status="active", limit=0, limit_remaining=0)
+        res = self.run_cli("doctor")
+        self.assertFalse(res.json["ok"])
+        self.assertIn("limit is 0", " ".join(res.json["problems"]))
+
+    def test_models_failure_is_a_problem(self):
+        self.fake.route("GET", r"/api/v2/models", (500, {"message": "boom"}))
+        res = self.run_cli("doctor")
+        self.assertEqual(res.code, 0, res.err)
+        self.assertFalse(res.json["ok"])
+        self.assertIn("/api/v2/models", " ".join(res.json["problems"]))
+
     def test_oai_failure_is_a_warning(self):
         self.fake.route("GET", r"/v1/models", (404, {"error": {"message": "nope"}}))
         res = self.run_cli("doctor")
         self.assertEqual(res.code, 0, res.err)
         self.assertEqual(res.json["oai"]["status"], "failed")
+        self.assertTrue(res.json["ok"])
 
 
 def core_now_plus_days(days):
@@ -351,6 +374,7 @@ class BoostTest(CliTest):
         self.assertEqual(res.json["result"]["prompt"], "an improved prompt")
         self.assertEqual(res.json["original_prompt"], "a red fox")
         self.assertIn("negative_prompt", res.json["result"])
+        self.assertEqual((res.json["max_cost"], res.json["max_cost_source"]), (0.25, "default"))
 
     def test_edit_quotes_without_upload_and_submits_the_image(self):
         png = self.png()

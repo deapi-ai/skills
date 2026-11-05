@@ -6,7 +6,8 @@
    sample runs offline against tests/fakeapi.py, once with --quote and once
    for real; every request must hit a spec path with the right method, send
    only fields the spec's request body defines (query parameters for GET), and
-   each paid POST must have a "/price" sibling.
+   each paid POST must have a "/price" sibling. QUOTE_ONLY_SAMPLES run with
+   --quote only (prices that have nothing to submit).
 3. --drift SPEC (URL or file): compare another spec, e.g. the live one, with
    the snapshot and print added/removed paths and request fields. Never fails.
 
@@ -141,9 +142,11 @@ def dynamic_check(spec):
         files = sample_files(tmp)
         modules = script.command_modules()
         for module in modules:
-            for sample in getattr(module, "SAMPLES", []):
+            runs = [(s, (["--quote"], [])) for s in getattr(module, "SAMPLES", [])]
+            runs += [(s, (["--quote"],)) for s in getattr(module, "QUOTE_ONLY_SAMPLES", [])]
+            for sample, extras in runs:
                 argv = [a.format(**files) for a in sample]
-                for extra in (["--quote"], []):
+                for extra in extras:
                     fake = fakeapi.FakeAPI()
                     if any(a.startswith("transcribe") or a == "stt" for a in argv[:1]):
                         fake.result_text = "sample transcript"

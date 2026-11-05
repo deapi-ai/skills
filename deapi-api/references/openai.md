@@ -20,7 +20,7 @@ import os
 from openai import OpenAI
 
 deapi = OpenAI(
-    api_key=os.environ["DEAPI_API_KEY"],
+    api_key=os.environ.get("DEAPI_API_KEY", ""),  # never None: no fallback to OPENAI_API_KEY
     base_url="https://oai.deapi.ai/v1",
     timeout=900.0,   # jobs hold the connection until they finish (up to ~10 minutes)
 )

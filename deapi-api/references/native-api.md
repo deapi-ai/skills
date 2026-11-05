@@ -132,7 +132,7 @@ import time
 import urllib.request
 
 API = "https://api.deapi.ai"
-KEY = os.environ["DEAPI_API_KEY"]
+KEY = os.environ.get("DEAPI_API_KEY", "")
 MAX_COST = 0.25  # USD; your application's ceiling
 
 

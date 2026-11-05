@@ -87,6 +87,28 @@ mkdir -p ~/.claude/skills && cp -r skills/deapi skills/deapi-api ~/.claude/skill
 hermes skills install deapi-ai/skills/deapi
 ```
 
+Hermes does not ask for the key when it loads the skill. Add it to the Hermes `.env` file
+(`~/.hermes/.env` by default; `hermes config env-path` prints the path), which Hermes passes
+to the terminal where the script runs:
+
+```bash
+DEAPI_API_KEY=sk-dp-...
+```
+
+If your deAPI account has access to chat models, Hermes can also use one as its main model
+through the OpenAI-compatible API (`hermes model`, "Custom endpoint", or in `config.yaml`):
+
+```yaml
+model:
+  provider: custom
+  base_url: https://oai.deapi.ai/v1
+  key_env: DEAPI_API_KEY
+  default: <a chat model ID from GET https://oai.deapi.ai/v1/models>
+```
+
+A text-only chat model cannot handle Hermes' image tasks (vision); point
+`auxiliary.vision` at another provider if you need them.
+
 **Codex, Cursor, Goose, OpenCode, VS Code Copilot** (shared `~/.agents/skills` convention):
 
 ```bash
@@ -139,7 +161,7 @@ Every paid command takes `--quote` (free price, nothing submitted), `--max-cost`
 | Claude Code | `npx skills add` or copy to `~/.claude/skills` | script, or MCP tools if connected | `DEAPI_API_KEY` in the environment | not yet |
 | Codex CLI | `npx skills add` or `~/.agents/skills` | script, or MCP tools if connected | `DEAPI_API_KEY`; MCP: `bearer_token_env_var` | not yet |
 | Cursor | `npx skills add` or `~/.agents/skills` | script | `DEAPI_API_KEY` | not yet |
-| Hermes Agent | `hermes skills install deapi-ai/skills/deapi` | script, or MCP tools if connected | `~/.hermes/.env` | not yet |
+| Hermes Agent | `hermes skills install deapi-ai/skills/deapi` | script, or MCP tools if connected | `DEAPI_API_KEY` in the Hermes `.env` file | not yet |
 | OpenClaw | ClawHub or copy the folder | script | `DEAPI_API_KEY` | not yet |
 | Windsurf, Continue.dev | copy the folder where the agent reads skills | script | `DEAPI_API_KEY` | not yet |
 | claude.ai, ChatGPT and other chat apps | not supported by the skills | use the deAPI MCP connector | OAuth or the connector's settings | — |
@@ -186,7 +208,7 @@ need `python` or `py` instead.
 deapi/                 the "do it now" skill: SKILL.md, scripts/deapi.py, references/
 deapi-api/             the "build it into an app" skill: SKILL.md, references/, assets/
 tests/                 offline unit tests, synthetic fixtures, Dockerfile
-tools/                 repository checks (frontmatter, OpenAPI, MCP names, leak scan)
+tools/                 repository checks (frontmatter, OpenAPI, MCP names, scanner patterns, leak scan)
 skills.sh.json         skill groupings for skills.sh and the Hermes Skills Hub
 ```
 

@@ -32,8 +32,17 @@ SAMPLES = [
     ["music", "--caption", "upbeat pop", "--lyrics", "[verse]\nla la la", "--bpm", "120",
      "--key", "C major", "--time-signature", "4", "--vocal-lang", "en"],
 ]
+# Run only with --quote by tools/check_openapi.py: a price by length has no source to submit.
+QUOTE_ONLY_SAMPLES = [
+    ["transcribe", "--duration", "7200"],
+    ["transcribe", "--duration", "3600", "--platform", "youtube", "--diarize"],
+    ["transcribe", "--duration", "45", "--platform", "tiktok", "--metadata"],
+]
 
 TS_LEVELS = ("segment", "word", "char")
+# --platform for a price by length: the API's `platform` values, plus "x" and "file".
+QUOTE_PLATFORMS = {"file": None, "youtube": "youtube", "x": "twitter", "twitter": "twitter",
+                   "twitch": "twitch", "kick": "kick", "tiktok": "tiktok"}
 SUBTITLE_FORMATS = ("srt", "vtt")
 SUBTITLE_LINE = 42          # characters per subtitle line
 SUBTITLE_CUE = 2 * SUBTITLE_LINE
@@ -80,8 +89,12 @@ def register(sub):
                "  deapi.py transcribe \"https://www.youtube.com/watch?v=...\"\n"
                "  deapi.py transcribe talk.mp3 --diarize --subtitles srt\n"
                "  deapi.py transcribe \"https://www.tiktok.com/@u/video/1\" --duration 45\n"
+               "  deapi.py transcribe --duration 7200 --quote\n"
+               "  deapi.py transcribe --duration 3600 --platform youtube --quote\n"
                "Links: YouTube, X (posts and Spaces), Twitch, Kick, TikTok. TikTok cannot be "
-               "priced from the link: ask the user for the length and pass --duration.")
+               "priced from the link: ask the user for the length and pass --duration.\n"
+               "Price for a length without a link or a file: --duration SEC --quote, with "
+               "--platform when the media will come from a link. Never invent a link.")
     p.add_argument("source", nargs="?", metavar="SOURCE",
                    help="YouTube/X/Twitch/Kick/TikTok link, local file or job:<id>")
     p.add_argument("--url", help="media link (same as SOURCE)")
@@ -101,7 +114,11 @@ def register(sub):
     p.add_argument("--duration", type=float,
                    help="length in seconds for the quote: required for TikTok links; for a "
                         "file only used when its length cannot be read (never lowers it); "
-                        "ignored for other links")
+                        "ignored for other links; without a source, with --quote: the price "
+                        "for this length")
+    p.add_argument("--platform", choices=sorted(QUOTE_PLATFORMS),
+                   help="only with --duration --quote and no source: where the media will "
+                        "come from, priced as deAPI prices that source (default: file)")
     p.set_defaults(func=cmd_transcribe)
 
     p = core.add_command(
@@ -729,14 +746,64 @@ def _transcribe_model(ctx, args, lang):
     return model
 
 
+def _transcribe_options(args, model, lang):
+    options = {"model": model["slug"]}
+    if lang:
+        options["lang"] = lang
+    if args.timestamps or args.ts_level or args.diarize or args.subtitles:
+        options["include_ts"] = True
+    if args.ts_level:
+        options["ts_level"] = args.ts_level
+    if args.diarize:
+        options["diarize"] = True
+    return options
+
+
+def _quote_by_length(ctx, args, lang):
+    """Free price for a length alone (`duration_seconds`, optional `platform`)."""
+    platform = QUOTE_PLATFORMS[args.platform or "file"]
+    model = _transcribe_model(ctx, args, lang)
+    options = _transcribe_options(args, model, lang)
+    if args.metadata:
+        if platform:
+            options["include_metadata"] = True
+        else:
+            core.log("note: --metadata applies to links only; ignored for a file")
+    fields = dict(options, duration_seconds=args.duration)
+    if platform:
+        fields["platform"] = platform
+    info = {"duration_seconds": args.duration, "duration_from": "--duration",
+            "platform": platform or "file"}
+    job = core.Job("transcribe", "/api/v2/audio/transcriptions", model, fields=fields,
+                   files=[], quote_fields=fields, quote_files=[], seed_field=None,
+                   text_ext="auto", output=args.output, info=info)
+    result = ctx.run(job, args)
+    result["note"] = ("Price for a length only. To run the job, give the link or the file; "
+                      "a link is then priced from the link itself.")
+    return result
+
+
 def cmd_transcribe(ctx, args):
     given = [v for v in (args.source, args.url, args.file) if v]
-    if len(given) != 1:
-        raise core.DeapiError("Give exactly one source: a link or a file.", core.EXIT_USAGE)
-    source = given[0]
     if args.duration is not None and args.duration <= 0:
         raise core.DeapiError("--duration must be a positive number of seconds.",
                               core.EXIT_USAGE)
+    if not given and args.duration and getattr(args, "quote", False):
+        lang = core.check_iso_language(args.lang) if args.lang else None
+        return _quote_by_length(ctx, args, lang)
+    if len(given) != 1:
+        raise core.DeapiError(
+            "Give exactly one source: a link or a file.", core.EXIT_USAGE,
+            None if given else "For a price by length alone, without a link or a file, run "
+            "`deapi.py transcribe --duration SECONDS --quote` (add --platform youtube, x, "
+            "twitch, kick or tiktok when the media will come from a link). Never invent a "
+            "link to get a quote.")
+    if args.platform:
+        raise core.DeapiError(
+            "--platform is only for a price by length without a source (--duration SECONDS "
+            "--quote); with a link or a file deAPI takes the platform from the source.",
+            core.EXIT_USAGE)
+    source = given[0]
     lang = core.check_iso_language(args.lang) if args.lang else None
     platform = core.detect_platform(source) if core.is_url(source) else None
     if core.is_url(source) and not platform and not _host(source).endswith(".deapi.ai"):
@@ -752,15 +819,7 @@ def cmd_transcribe(ctx, args):
             "Do not guess the length: the quote, and the cost limit, depend on it.")
 
     model = _transcribe_model(ctx, args, lang)
-    options = {"model": model["slug"]}
-    if lang:
-        options["lang"] = lang
-    if args.timestamps or args.ts_level or args.diarize or args.subtitles:
-        options["include_ts"] = True
-    if args.ts_level:
-        options["ts_level"] = args.ts_level
-    if args.diarize:
-        options["diarize"] = True
+    options = _transcribe_options(args, model, lang)
 
     files, info = [], {}
     if platform:

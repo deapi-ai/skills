@@ -1,285 +1,114 @@
-# deAPI Skills - AI Media Generation for Claude Code
+# deAPI Skills
 
-> [!NOTE]
-> **A newer, portable successor to this skill lives in [deapi-ai/skills](https://github.com/deapi-ai/skills).**
-> The new `deapi` skill targets the current deAPI **v2** API, discovers models live
-> (no hardcoded slugs), adds music/video generation, and follows the
-> [agentskills.io](https://agentskills.io) open standard — so it runs unchanged in
-> Hermes Agent, Claude Code, Cursor, Goose, OpenCode, Codex and 40+ other agents.
-> This repository (v1 API, Claude Code commands) remains available but is no longer
-> actively developed.
+Agent skills for [deAPI](https://deapi.ai): let AI agents transcribe audio and video links,
+generate images, speech, music and video, edit images, read text from images, remove
+backgrounds, upscale and create embeddings.
 
-> **Skill for Claude Code** that adds AI media generation capabilities.
-> Install once, then just describe what you want - transcribe videos, generate images,
-> text-to-speech, OCR. Claude automatically picks the right tool.
-> Also works with Cursor, Windsurf & Continue.dev. Up to 20x cheaper inference via [deAPI](https://deapi.ai).
-> **Free $5 credit** on signup, no credit card required.
+The skills follow the [agentskills.io](https://agentskills.io) open standard, so they run in
+Claude Code, Codex, Cursor, Hermes Agent, OpenClaw, Goose, OpenCode, GitHub Copilot, Windsurf
+and other agents that support skills.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-## Table of Contents
+## Coming from `deapi-ai/claude-code-skills`?
 
-- [Why deAPI Skills?](#why-deapi-skills)
-- [Quick Start](#quick-start)
-- [Use Cases](#use-cases)
-- [Command Reference](#command-reference)
-- [Installation](#installation)
-- [Compatibility](#compatibility)
-- [Pricing](#pricing)
-- [Documentation](#documentation)
-- [License](#license)
+This repository **is** the former `deapi-ai/claude-code-skills` (renamed; old links redirect here).
+The old Claude Code skill used the deprecated deAPI API v1. It is kept for reference at the
+[`v1-final`](https://github.com/deapi-ai/skills/tree/v1-final) tag and is no longer maintained.
 
-## Why deAPI Skills?
+To switch:
+1. Remove the old copy: `~/.claude/skills/deapi` and any deAPI command files you copied
+   (`~/.claude/commands/`, `.cursor/commands/`, `.windsurf/workflows/`).
+2. Install the current skill (see [Install](#3-install)).
+3. Keep your `DEAPI_API_KEY`. It works with the new skill.
 
-**Install once, just talk to Claude.**
+The slash commands (`/transcribe`, `/generate-image`, ...) are gone. Ask your agent in plain
+language ("transcribe this video", "generate an image of ...") and the `deapi` skill handles it.
+The skill folder is still `deapi/` at the repository root.
 
-After installation, Claude automatically knows how to:
-- Transcribe YouTube videos
-- Generate images from text
-- Convert text to speech
-- Extract text from images (OCR)
-- And more...
+## Skills
 
-Just describe what you want in natural language. Claude picks the right tool.
-You can also use commands directly if you prefer.
+| Skill | What it does |
+|-------|--------------|
+| **[deapi](deapi)** | Transcription of files and YouTube, X, TikTok, Twitch or Kick links, text-to-image, image editing, OCR, background removal, upscaling, text-to-speech with voice cloning and voice design, music, text-to-video, image animation, embeddings, prompt boosting and balance. Python standard library only; models are discovered live, so no slugs are hardcoded. |
 
-**Bonus:** Up to 20x cheaper than big clouds like OpenAI.
+## Setup
 
-## Quick Start
+### 1. Get an API key
 
-**1. Get your API key** from [deapi.ai](https://deapi.ai) (free $5 credit)
+Sign up at [deapi.ai](https://deapi.ai) (free credit on signup, no card required) and create a
+key at [app.deapi.ai](https://app.deapi.ai). Keys look like `sk-dp-<id>-<secret>`.
 
-**2. Set environment variable:**
-```bash
-export DEAPI_API_KEY="your_key_here"
-```
-
-**3. Install skill:**
-```bash
-git clone https://github.com/deapi-ai/claude-code-skills.git
-cp -r claude-code-skills/deapi ~/.claude/skills/
-```
-
-**4. Restart Claude Code** (new session or reopen terminal)
-
-**5. Try it:**
-> "Transcribe this YouTube video: https://youtube.com/watch?v=dQw4w9WgXcQ"
-
-Or use command directly: `/transcribe https://youtube.com/watch?v=...`
-
-**Done!** Claude automatically picks the right tool based on your request.
-
-## Use Cases
-
-### Transcribe YouTube videos
-
-Just tell Claude what you want:
-> "Transcribe this YouTube video and summarize key points"
-
-Claude automatically uses `/transcribe` and processes the result.
-
-### Generate AI images
-
-> "Create a hero image for my landing page - minimalist, tech startup vibe"
-
-Claude generates the image using Flux model via `/generate-image`.
-
-### Text-to-speech / AI voice
-
-> "Read this blog post aloud with a professional male voice"
-
-Claude converts text to natural speech with `/generate-audio`.
-
-### Extract text from images (OCR)
-
-> "Extract all text from this screenshot"
-
-Claude uses `/ocr` to pull text from any image.
-
-### Generate video from text
-
-> "Create a short video of a cat walking through a garden"
-
-Claude generates video with `/generate-video`.
-
-### Configure webhooks for production
-
-> "Set up webhooks for my server to receive results"
-
-Claude configures delivery with `/deapi-setup`.
-
-## Command Reference
-
-> You don't need to memorize these. Claude automatically picks the right command
-> based on your request. This is just for reference.
-
-| Command | What it does | Example |
-|---------|--------------|---------|
-| `/transcribe` | Transcribe YouTube, audio, video | `/transcribe https://youtube.com/watch?v=...` |
-| `/generate-image` | AI image generation from text | `/generate-image a sunset over mountains` |
-| `/generate-audio` | Text-to-speech conversion | `/generate-audio "Hello world" --voice am_adam` |
-| `/generate-video` | Text/image to video | `/generate-video a cat walking through garden` |
-| `/ocr` | Extract text from images | `/ocr https://example.com/document.png` |
-| `/remove-bg` | Remove image background | `/remove-bg https://example.com/photo.jpg` |
-| `/upscale` | Upscale image resolution | `/upscale https://example.com/small.jpg --scale 4` |
-| `/transform-image` | Style transfer | `/transform-image https://... watercolor style` |
-| `/embed` | Generate text embeddings | `/embed "text to embed"` |
-| `/deapi-setup` | Configure webhooks/websockets | `/deapi-setup` |
-| `/deapi-balance` | Check account balance | `/deapi-balance` |
-
-## Installation
-
-### Skill vs Commands - What's the difference?
-
-| Approach | Location | What happens |
-|----------|----------|--------------|
-| **Skill** (recommended) | `~/.claude/skills/` | Claude knows about all deAPI commands and suggests them automatically when relevant |
-| **Commands only** | `~/.claude/commands/` | Only specific commands you install, no auto-suggestions |
-
-**Example:** With skill installed, you say "transcribe this YouTube video" and Claude automatically knows to use `/transcribe`. With commands only, you must explicitly type `/transcribe`.
-
-### How it works
-
-Claude Code automatically discovers skills in `~/.claude/skills/`. No configuration needed - just copy the folder and start chatting.
-
-```
-~/.claude/skills/
-└── deapi/
-    ├── SKILL.md              ← Skill metadata + command routing
-    └── commands/             ← Full command documentation (loaded on-demand)
-        ├── transcribe.md
-        ├── generate-image.md
-        └── ...
-```
-
-### Prerequisites
-
-1. Get your API key from [deapi.ai](https://deapi.ai)
-2. Set environment variable:
-   ```bash
-   # Add to ~/.bashrc or ~/.zshrc
-   export DEAPI_API_KEY="your_key_here"
-   ```
-
-### Full Skill Installation (Recommended)
+### 2. Set the key
 
 ```bash
-git clone https://github.com/deapi-ai/claude-code-skills.git
-cp -r claude-code-skills/deapi ~/.claude/skills/
+export DEAPI_API_KEY="sk-dp-..."
 ```
 
-Then restart Claude Code (start a new session or reopen terminal).
+Hermes Agent asks for the key on first use and stores it for you.
 
-### Individual Command Installation
+### 3. Install
 
-Install only specific commands if you prefer:
+**Any agent, via [skills.sh](https://skills.sh):**
 
 ```bash
-# Create commands directory if needed
-mkdir -p ~/.claude/commands
-
-# Just transcription
-cp claude-code-skills/deapi/commands/transcribe.md ~/.claude/commands/
-
-# Just image generation
-cp claude-code-skills/deapi/commands/generate-image.md ~/.claude/commands/
+npx skills add deapi-ai/skills
 ```
 
-Then restart Claude Code to load the new commands.
-
-## Compatibility
-
-deAPI Skills work with multiple AI coding assistants:
-
-### Claude Code (Primary)
+**Claude Code** (manual):
 
 ```bash
-# Full skill installation (recommended)
-cp -r claude-code-skills/deapi ~/.claude/skills/
-
-# Or just commands
-cp claude-code-skills/deapi/commands/*.md ~/.claude/commands/
+git clone https://github.com/deapi-ai/skills.git
+mkdir -p ~/.claude/skills && cp -r skills/deapi ~/.claude/skills/
 ```
 
-### Cursor IDE
+**Hermes Agent:**
 
 ```bash
-mkdir -p .cursor/commands
-cp claude-code-skills/deapi/commands/*.md .cursor/commands/
+git clone https://github.com/deapi-ai/skills.git
+mkdir -p ~/.hermes/skills/creative && cp -r skills/deapi ~/.hermes/skills/creative/
 ```
 
-### Windsurf
+**Codex, Cursor, Goose, OpenCode, VS Code Copilot** (shared `~/.agents/skills` convention):
 
 ```bash
-mkdir -p .windsurf/workflows
-cp claude-code-skills/deapi/commands/*.md .windsurf/workflows/
+git clone https://github.com/deapi-ai/skills.git
+mkdir -p ~/.agents/skills && cp -r skills/deapi ~/.agents/skills/
 ```
 
-### Platform Support Matrix
+The skill needs Python 3.9 or newer and network access to `api.deapi.ai`.
 
-| Platform | Status | Format | Location |
-|----------|--------|--------|----------|
-| Claude Code | Fully supported | Markdown | `~/.claude/skills/` |
-| Cursor IDE | Compatible | Markdown | `.cursor/commands/` |
-| Windsurf | Compatible | Markdown | `.windsurf/workflows/` |
+### 4. Use
 
-## Pricing
+Ask your agent naturally: "transcribe this YouTube video, it's in English", "generate an image
+of a red fox", "read the text in scan.png". The helper script also works on its own:
 
-**Up to 20x more cost effective** than proprietary APIs.
-
-Example prices:
-- Transcription: **$0.021/hour**
-- Image generation: from **$0.002/image**
-
-Free $5 credit on signup, no credit card required.
-
-[deapi.ai](https://deapi.ai)
-
-## Documentation
-
-- [API Reference](docs/api-reference.md)
-- [Troubleshooting](docs/troubleshooting.md)
-
-**Available models:** Query `GET https://api.deapi.ai/api/v1/client/models` for up-to-date model list.
-
-## Repository Structure
-
-```
-claude-code-skills/
-├── deapi/                        ← Copy this to ~/.claude/skills/
-│   ├── SKILL.md                  ← Skill metadata + routing
-│   └── commands/                 ← Command documentation (on-demand)
-│       ├── transcribe.md
-│       ├── generate-image.md
-│       ├── generate-audio.md
-│       ├── generate-video.md
-│       ├── ocr.md
-│       ├── remove-bg.md
-│       ├── upscale.md
-│       ├── transform-image.md
-│       ├── embed.md
-│       ├── deapi-setup.md
-│       └── deapi-balance.md
-├── docs/
-│   ├── api-reference.md
-│   └── troubleshooting.md
-├── .env.example                  ← Environment variable template
-├── LICENSE
-└── README.md
+```bash
+python3 deapi/scripts/deapi.py stt --url "https://www.youtube.com/watch?v=..." --lang en
+python3 deapi/scripts/deapi.py image --prompt "a red fox, studio light" --output fox.png
+python3 deapi/scripts/deapi.py models --type image
+python3 deapi/scripts/deapi.py balance
 ```
 
-## Requirements
+## Other ways to use deAPI from an agent
 
-- Claude Code CLI, Cursor IDE, Windsurf, or Continue.dev
-- deAPI account with API key
-- Internet connection
+- **MCP server:** `https://mcp.deapi.ai/mcp` exposes the same jobs as MCP tools
+  ([deapi-ai/mcp-server-deapi](https://github.com/deapi-ai/mcp-server-deapi)). Use it in
+  clients without a terminal, such as claude.ai.
+- **OpenAI-compatible API:** `https://oai.deapi.ai/v1` works with OpenAI SDKs for images,
+  speech, transcriptions, embeddings and videos.
+- **Native REST API:** [docs.deapi.ai](https://docs.deapi.ai)
+  (OpenAPI: [openapi-v2.json](https://docs.deapi.ai/openapi-v2.json)).
+
+## Skill format
+
+```
+deapi/
+├── SKILL.md              # YAML frontmatter (name, description, metadata) + instructions
+├── scripts/deapi.py      # helper CLI for the deAPI v2 API
+└── references/           # API reference and model discovery guide
+```
 
 ## License
 
-MIT License - see [LICENSE](LICENSE)
-
-## Links
-
-- [deAPI Website](https://deapi.ai)
-- [deAPI Documentation](https://docs.deapi.ai)
-- [deAPI Status](https://status.deapi.ai)
+[MIT](LICENSE)

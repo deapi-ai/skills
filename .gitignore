@@ -22,3 +22,7 @@ docs/client-api-docs.json
 docs/test-results.md
 docs/pricing.md
 .claude-plugin/
+
+# Python
+__pycache__/
+*.pyc

@@ -1,0 +1,78 @@
+{
+  "_comment": "Synthetic model cards for tests/unit/test_video.py. Field names follow the public API spec (GET /api/v2/models); every value is invented.",
+  "data": [
+    {
+      "slug": "Example_Ref_Video",
+      "name": "Example reference video",
+      "inference_types": ["txt2video", "img2video"],
+      "status": "standard_model",
+      "tags": [],
+      "info": {
+        "limits": {"min_width": 512, "max_width": 1280, "min_height": 512, "max_height": 1280,
+                   "dimension_multiple": 32, "min_fps": 25, "max_fps": 25,
+                   "min_frames": 50, "max_frames": 200,
+                   "max_ref_images": 3, "max_ref_videos": 1, "max_ref_audios": 2,
+                   "max_ref_files": 4, "min_ref_video_duration": 1, "max_ref_video_duration": 5,
+                   "min_ref_audio_duration": 1, "max_ref_audio_duration": 8,
+                   "min_ref_image_ratio": 0.25, "max_ref_image_ratio": 4},
+        "features": {"supports_steps": false, "supports_guidance": false,
+                     "supports_negative_prompt": false, "supports_last_frame": false,
+                     "supports_image_refs": true, "supports_video_refs": true,
+                     "supports_audio_refs": true},
+        "defaults": {"width": 1024, "height": 576, "frames": 100, "fps": 25}
+      }
+    },
+    {
+      "slug": "Example_Steps_Video",
+      "name": "Example video with steps",
+      "inference_types": ["txt2video", "img2video"],
+      "status": "standard_model",
+      "tags": [],
+      "info": {
+        "limits": {"min_width": 256, "max_width": 640, "min_height": 256, "max_height": 640,
+                   "min_fps": 30, "max_fps": 30, "min_frames": 30, "max_frames": 90,
+                   "min_steps": 1, "max_steps": 4},
+        "features": {"supports_steps": true, "supports_guidance": false,
+                     "supports_negative_prompt": true, "supports_last_frame": true},
+        "defaults": {"width": 512, "height": 512, "frames": 60, "fps": 30, "steps": 2}
+      }
+    },
+    {
+      "slug": "RealESRGAN_Vid_x4",
+      "name": "Example fixed-scale video upscaler",
+      "inference_types": ["vid-upscale"],
+      "status": "standard_model",
+      "tags": [],
+      "info": {"limits": {"min_side": 64, "max_side": 1024, "max_video_duration_seconds": 10},
+               "features": {}, "defaults": {}}
+    },
+    {
+      "slug": "Example_Scaled_Upscaler",
+      "name": "Example configurable video upscaler",
+      "inference_types": ["vid-upscale"],
+      "status": "standard_model",
+      "tags": [],
+      "info": {"limits": {"min_side": 64, "max_side": 1024, "min_scale": 2, "max_scale": 4,
+                          "max_video_duration_seconds": 8},
+               "features": {}, "defaults": {}}
+    },
+    {
+      "slug": "Marlin_2B",
+      "name": "Example video describer",
+      "inference_types": ["video2desc", "video_file2desc"],
+      "status": "standard_model",
+      "tags": [],
+      "info": {"limits": {"available_presets": ["fast", "balanced"],
+                          "max_video_duration_seconds": 600},
+               "features": {"supports_presets": true}, "defaults": {}}
+    },
+    {
+      "slug": "Example_Link_Describer",
+      "name": "Example link-only describer",
+      "inference_types": ["video2desc"],
+      "status": "standard_model",
+      "tags": [],
+      "info": {"limits": {}, "features": {"supports_presets": false}, "defaults": {}}
+    }
+  ]
+}

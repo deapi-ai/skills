@@ -1,0 +1,18 @@
+{
+ "_comment": "Synthetic GET /api/v2/key data (ApiKeyResource fields); not a real key.",
+ "id": 1,
+ "name": "example key",
+ "preview": "sk-dp-1-...0000",
+ "role": "api",
+ "status": "active",
+ "created_at": "2026-01-01T00:00:00+00:00",
+ "expires_at": null,
+ "last_used_at": null,
+ "ip_whitelist": [],
+ "ip_whitelist_count": 0,
+ "limit": 5,
+ "reset_interval": "daily",
+ "limit_used": 1.25,
+ "limit_remaining": 3.75,
+ "limit_resets_at": "2026-01-02T00:00:00+00:00"
+}

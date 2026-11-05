@@ -1,0 +1,102 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      drift:
+        description: "Compare the live OpenAPI spec with the snapshot"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: "3.12"
+      - name: Frontmatter and skill layout
+        run: python tools/check_frontmatter.py
+      - name: Patterns that agent skill scanners block
+        run: python tools/check_skill_safety.py
+      - name: Agent Skills reference validator
+        run: |
+          python -m pip install "skills-ref==0.1.1"
+          agentskills validate deapi
+          agentskills validate deapi-api
+      - name: Paths and fields against the public OpenAPI snapshot
+        run: python tools/check_openapi.py
+      - name: MCP tool names in the docs
+        run: python tools/check_mcp_names.py
+
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python: "3.12"
+          - os: windows-latest
+            python: "3.12"
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Unit tests (offline, standard library only)
+        run: python -m unittest discover -s tests/unit -t tests/unit -v
+      - name: deapi-api docs and Python examples (Node, curl and SDK parts skip here)
+        run: python -m unittest tests/test_deapi_api.py -v
+
+  # The oldest supported Python (3.9, the macOS system Python). setup-python no longer
+  # ships it for current Ubuntu runners, so this job runs in the official image.
+  test-py39:
+    runs-on: ubuntu-latest
+    container: python:3.9-slim
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Unit tests (offline, standard library only)
+        run: python -m unittest discover -s tests/unit -t tests/unit -v
+      - name: deapi-api docs and Python examples
+        run: python -m unittest tests/test_deapi_api.py -v
+
+  examples:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+      - name: Pinned OpenAI SDKs for the examples
+        run: |
+          python -m pip install "openai==3.46.0"
+          mkdir -p "$RUNNER_TEMP/sdk"
+          cd "$RUNNER_TEMP/sdk"
+          npm init -y > /dev/null
+          npm install --no-audit --no-fund "openai@7.51.0"
+      - name: deapi-api examples (Python, Node, curl, OpenAI SDKs)
+        env:
+          DEAPI_TEST_NODE_MODULES: ${{ runner.temp }}/sdk/node_modules
+        run: python -m unittest tests/test_deapi_api.py -v
+
+  drift:
+    if: github.event_name == 'workflow_dispatch' && inputs.drift
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: "3.12"
+      - name: Live spec vs snapshot (prints differences, never fails)
+        run: python tools/check_openapi.py --drift https://docs.deapi.ai/openapi.json

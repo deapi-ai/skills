@@ -1,0 +1,46 @@
+name: Leak scan
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: "3.12"
+      - name: Private patterns (optional repository secret)
+        env:
+          LEAK_PATTERNS: ${{ secrets.LEAK_PATTERNS }}
+        run: |
+          if [ -n "$LEAK_PATTERNS" ]; then
+            echo "$LEAK_PATTERNS" > "$RUNNER_TEMP/leak-patterns.txt"
+            echo "LEAK_PATTERNS_FILE=$RUNNER_TEMP/leak-patterns.txt" >> "$GITHUB_ENV"
+          fi
+      - name: Files
+        run: python tools/scan_leaks.py
+      - name: Branch name, commit messages, PR title and body
+        if: github.event_name == 'pull_request'
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_BRANCH: ${{ github.head_ref }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          python tools/scan_leaks.py --git-meta --range "origin/${BASE_REF}..HEAD"
+          python tools/scan_leaks.py --text-env PR_TITLE --text-env PR_BODY --text-env PR_BRANCH
+      - name: gitleaks (pinned)
+        run: >
+          docker run --rm -v "$PWD:/repo"
+          -e GIT_CONFIG_COUNT=1 -e GIT_CONFIG_KEY_0=safe.directory -e GIT_CONFIG_VALUE_0=/repo
+          zricethezav/gitleaks:v8.21.2
+          detect --source /repo --no-banner --redact

@@ -56,7 +56,8 @@ MODEL_PREFERENCES = {
     "image": [r"klein", r"flux"],
     "edit": [r"klein", r"qwen"],
     "tts": [r"kokoro"],
-    "stt": [r"whisper"],
+    # Ct2 honours `lang` and costs the same as the plain Whisper build.
+    "stt": [r"ct2", r"whisper"],
     "ocr": [r"nanonets", r"ocr"],
     "rmbg": [r"ben"],
     "upscale": [r"esrgan"],
@@ -81,14 +82,9 @@ def api_key():
     if not key:
         raise ApiError(
             "DEAPI_API_KEY is not set. Create a key at https://app.deapi.ai "
-            "(API Keys section, format dpn-sk-...) and export it: "
-            "export DEAPI_API_KEY=dpn-sk-..."
+            "(API Keys section, format sk-dp-...) and export it: "
+            "export DEAPI_API_KEY=sk-dp-..."
         )
-    # The native REST API (api.deapi.ai) authenticates with the raw token;
-    # the dpn-sk- prefix is only required by the OpenAI-compatible gateway
-    # (oai.deapi.ai). Accept the key in either form.
-    if key.startswith("dpn-sk-"):
-        key = key[len("dpn-sk-"):]
     return key
 
 
@@ -97,7 +93,7 @@ def _request(method, url, body=None, headers=None):
     req.add_header("Authorization", "Bearer " + api_key())
     req.add_header("Accept", "application/json")
     # Cloudflare on api.deapi.ai bans the default Python-urllib user agent.
-    req.add_header("User-Agent", "deapi-skill/1.0 (+https://github.com/deapi-ai/skills)")
+    req.add_header("User-Agent", "deapi-skill/1.1 (+https://github.com/deapi-ai/skills)")
     for name, value in (headers or {}).items():
         req.add_header(name, value)
     try:
@@ -239,6 +235,14 @@ def model_defaults(model):
     limits = info.get("limits") or {}
     features = info.get("features") or {}
     return defaults, limits, features
+
+
+def pinned(limits, key):
+    """The value a model fixes a parameter at (min_<key> == max_<key>), else None."""
+    low, high = limits.get("min_" + key), limits.get("max_" + key)
+    if low is not None and str(low) == str(high):
+        return low
+    return None
 
 
 def clamp(value, limits, low_key, high_key):
@@ -434,6 +438,8 @@ def cmd_stt(args):
         raise ApiError("Provide exactly one of --url or --file.")
     slug, _ = resolve_model("stt", args.model)
     fields = {"model": slug, "include_ts": args.timestamps}
+    if args.lang:
+        fields["lang"] = args.lang
     files = []
     if args.url:
         fields["source_url"] = args.url
@@ -470,16 +476,20 @@ def cmd_upscale(args):
 
 def cmd_music(args):
     slug, model = resolve_model("music", args.model)
-    defaults, _, _ = model_defaults(model)
+    defaults, limits, _ = model_defaults(model)
+    # Music models publish no defaults for steps or guidance, only a range
+    # that pins each to one value; anything else is rejected with a 422.
+    steps = args.steps if args.steps is not None else (
+        defaults.get("inference_steps") or pinned(limits, "steps") or 8)
+    guidance = args.guidance if args.guidance is not None else (
+        defaults.get("guidance_scale") or pinned(limits, "guidance") or 1)
     fields = {
         "caption": args.caption,
         "model": slug,
         "lyrics": args.lyrics,
-        "duration": args.duration,
-        "inference_steps": args.steps if args.steps is not None
-        else int(defaults.get("inference_steps", 8)),
-        "guidance_scale": args.guidance if args.guidance is not None
-        else float(defaults.get("guidance_scale", 7.5)),
+        "duration": clamp(args.duration, limits, "min_duration", "max_duration"),
+        "inference_steps": int(steps),
+        "guidance_scale": float(guidance),
         "seed": args.seed if args.seed is not None else random.randint(0, 2**31 - 1),
         "format": args.format,
     }
@@ -499,16 +509,22 @@ def cmd_video(args):
         "model": slug,
         "width": clamp(args.width, limits, "min_width", "max_width"),
         "height": clamp(args.height, limits, "min_height", "max_height"),
-        "steps": args.steps if args.steps is not None else int(defaults.get("steps", 8)),
         "seed": args.seed if args.seed is not None else random.randint(0, 2**31 - 1),
-        "frames": args.frames if args.frames is not None
-        else int(defaults.get("frames", 97)),
+        "frames": clamp(args.frames if args.frames is not None
+                        else int(defaults.get("frames", 97)),
+                        limits, "min_frames", "max_frames"),
+        # fps is required; models pin it (24 on LTX-2, 30 on LTXV)
+        "fps": clamp(args.fps if args.fps is not None
+                     else int(defaults.get("fps") or pinned(limits, "fps") or 24),
+                     limits, "min_fps", "max_fps"),
     }
+    if features.get("supports_steps", True):
+        payload["steps"] = clamp(args.steps if args.steps is not None
+                                 else int(defaults.get("steps", 8)),
+                                 limits, "min_steps", "max_steps")
     if features.get("supports_guidance", True):
         payload["guidance"] = (args.guidance if args.guidance is not None
                                else float(defaults.get("guidance", 3.0)))
-    if args.fps:
-        payload["fps"] = args.fps
     if args.negative and features.get("supports_negative_prompt", True):
         payload["negative_prompt"] = args.negative
     run_job("/api/v2/videos/generations", payload=payload,
@@ -645,6 +661,9 @@ def build_parser():
     p.add_argument("--file", help="local audio (<=20MB) or video (<=50MB) file")
     p.add_argument("--model")
     p.add_argument("--timestamps", action="store_true", help="include timestamps")
+    p.add_argument("--lang", help="spoken language code, e.g. en or pl. Set it whenever "
+                                  "the language is known: auto-detection can pick the "
+                                  "wrong one, and a wrong code returns a translation")
     p.add_argument("--output")
     p.set_defaults(func=cmd_stt)
 

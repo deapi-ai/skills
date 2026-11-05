@@ -37,13 +37,13 @@ These appeared in official docs at the time of writing. Treat them as
 *examples of what slugs look like*, not as guaranteed-available models:
 
 - Image: `Flux_2_Klein_4B_BF16` (FLUX.2 Klein — fixed 4 steps, no guidance,
-  256–1536 px), `Flux1schnell`, `ZImageTurbo_INT8`
+  256–1536 px), `ZImageTurbo_INT8`, `Flux1schnell`
 - Image edit: `Flux_2_Klein_4B_BF16` (≤3 input images), `QwenImageEdit_Plus_NF4`
 - TTS: `Kokoro` (54+ voices, e.g. `af_bella`)
-- Transcription: `WhisperLargeV3`
+- Transcription: `WhisperLargeV3Ct2` (honours `lang`; prefer it over `WhisperLargeV3`)
 - OCR: `Nanonets_Ocr_S_F16`
 - Background removal: `Ben2`
-- Upscale: `RealESRGAN_x2`, `RealESRGAN_x4`
-- Music: `ACE-Step-v1.5-turbo`
-- Video: `Ltx2_19B_Dist_FP8`
+- Upscale: `RealESRGAN_x4`
+- Music: `AceStep_1_5_Turbo`, `AceStep_1_5_XL_Turbo_INT8`
+- Video: `Ltx2_3_22B_Dist_INT8`, `Ltx2_5_22B_Dist_INT8`
 - Embeddings: `Bge_M3_FP16` (1024 dims)

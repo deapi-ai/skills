@@ -5,12 +5,14 @@ Full docs: https://docs.deapi.ai (OpenAPI: https://docs.deapi.ai/openapi-v2.json
 ## Auth & bases
 
 - REST v2 base: `https://api.deapi.ai/api/v2`
-- OpenAI-compatible gateway: `https://oai.deapi.ai/v1` (images, speech,
-  transcriptions, embeddings, videos; **no** `/chat/completions` — deAPI hosts
-  no LLMs)
+- OpenAI-compatible API: `https://oai.deapi.ai/v1` (images, speech,
+  transcriptions, embeddings, videos).
+  Chat models, when available to your account, are listed at `GET /v1/models`.
+- MCP server: `https://mcp.deapi.ai/mcp` (the same jobs as MCP tools)
 - Headers: `Authorization: Bearer <DEAPI_API_KEY>` + `Accept: application/json`
-- Keys start with `dpn-sk-`. Rate-limit headers: `X-RateLimit-Limit`,
-  `X-RateLimit-Remaining`, `X-RateLimit-Type` (`minute`|`daily`), `Retry-After`.
+- Keys look like `sk-dp-<id>-<secret>` (older `<id>|<secret>` keys keep
+  working). Rate-limit headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`,
+  `X-RateLimit-Reset`, `X-RateLimit-Policy` (e.g. `600;w=60`), `Retry-After` on 429.
 
 ## Async job pattern (all generation endpoints)
 
@@ -38,9 +40,9 @@ Every POST endpoint has a price estimator sibling: `POST <endpoint>/price`.
 | Background removal | `POST /api/v2/images/background-removals` | multipart: `image, model` | transparent PNG out |
 | Upscale | `POST /api/v2/images/upscales` | multipart: `image, model` | scale is per-model (x2/x4) |
 | TTS | `POST /api/v2/audio/speech` | multipart: `text, model, lang, speed, format, sample_rate` (+`mode`: `custom_voice`\|`voice_clone`\|`voice_design`) | voices per model in `languages` |
-| Transcription | `POST /api/v2/audio/transcriptions` | multipart: `model, include_ts` + exactly one of `source_url` \| `source_file` | URL: YouTube, X, Twitch, Kick, TikTok. Files: audio ≤20 MB, video ≤50 MB |
+| Transcription | `POST /api/v2/audio/transcriptions` | multipart: `model, include_ts` (+`lang`, `ts_level`, `diarize`) + exactly one of `source_url` \| `source_file` | URL: YouTube, X, Twitch, Kick, TikTok. Files: audio ≤20 MB, video ≤50 MB. `lang` only takes effect on `WhisperLargeV3Ct2` |
 | Music | `POST /api/v2/audio/music` | multipart: `caption, model, lyrics, duration (10-600s), inference_steps, guidance_scale, seed, format` (+`bpm, keyscale, timesignature, reference_audio`) | `lyrics: "[Instrumental]"` for no vocals |
-| Text-to-video | `POST /api/v2/videos/generations` | JSON: `prompt, model, width, height, guidance, steps, seed, frames` (+`fps, negative_prompt`) | |
+| Text-to-video | `POST /api/v2/videos/generations` | JSON: `prompt, model, width, height, seed, frames, fps` (+`steps, guidance, negative_prompt` where the model supports them) | `fps` is required; models pin it (see `info.limits`) |
 | Image-to-video | `POST /api/v2/videos/animations` | multipart: `prompt, first_frame_image, model, width, height, guidance, steps, seed, frames, fps` (+`last_frame_image, negative_prompt`) | `fps` is required by the live API despite being marked optional in the spec |
 | Embeddings | `POST /api/v2/embeddings` | JSON: `input` (string or array), `model` | |
 | Prompt booster | `POST /api/v2/prompts/enhancements` | multipart: `prompt, type` (v2 dot notation, e.g. `images.generations`, `videos.animations`) + `model_slug?, negative_prompt?, image?` (image required for `images.edits`/`videos.animations`) | returns enhanced `prompt` (+`negative_prompt`) |

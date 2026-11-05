@@ -175,6 +175,10 @@ need `python` or `py` instead.
   speech, transcriptions, embeddings and videos.
 - **Native REST API:** [docs.deapi.ai](https://docs.deapi.ai)
   (OpenAPI: [openapi.json](https://docs.deapi.ai/openapi.json)).
+- **Python SDK:** [deapi-ai/deapi-python-sdk](https://github.com/deapi-ai/deapi-python-sdk)
+  wraps every endpoint, price quotes, polling, webhook verification and WebSockets
+  (Python 3.11+, installed from GitHub: `pip install "git+https://github.com/deapi-ai/deapi-python-sdk.git@v0.5.2"`;
+  `pip install deapi` is an unrelated package).
 
 ## Repository layout
 

@@ -15,7 +15,7 @@ other agents that support skills.
 ## Quick start
 
 ```bash
-export DEAPI_API_KEY="sk-dp-..."      # create a key at https://app.deapi.ai
+export DEAPI_API_KEY="sk-dp-..."      # create a key at https://app.deapi.ai/settings/api-keys
 npx skills add deapi-ai/skills        # or see "Install" below for your agent
 ```
 
@@ -40,7 +40,7 @@ above your limit (0.25 USD per job by default).
 
 ### 1. Get an API key
 
-Sign up at [deapi.ai](https://deapi.ai) and create a key at [app.deapi.ai](https://app.deapi.ai)
+Sign up at [deapi.ai](https://deapi.ai) and create a key at [app.deapi.ai/settings/api-keys](https://app.deapi.ai/settings/api-keys)
 (Settings > API Keys). Keys look like `sk-dp-<id>-<secret>`; use them as they are.
 
 For an agent, create a dedicated key with the **API** role and a **daily spend limit**. deAPI
@@ -102,6 +102,21 @@ model:
 
 A text-only chat model cannot handle Hermes' image tasks (vision); point `auxiliary.vision` at
 another provider if you need them.
+
+To make deAPI the engine behind Hermes' built-in `image_generate` and `video_generate` tools,
+install the [deAPI plugin](https://github.com/deapi-ai/hermes-plugin-deapi)
+(`hermes plugins install deapi-ai/hermes-plugin-deapi`, `hermes plugins enable deapi`, then pick
+deAPI in `hermes tools`).
+For the deAPI MCP tools, add the server to `config.yaml`; Hermes fills in the key from its
+`.env`:
+
+```yaml
+mcp_servers:
+  deapi:
+    url: https://mcp.deapi.ai/mcp
+    headers:
+      Authorization: "Bearer ${DEAPI_API_KEY}"
+```
 
 **Codex, Cursor, Goose, OpenCode, VS Code Copilot** (shared `~/.agents/skills` convention):
 

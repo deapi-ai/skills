@@ -87,7 +87,7 @@ Not this skill: writing application code that calls deAPI (use `deapi-api`).
 
 - **Python 3.9 or newer.** Standard library only, nothing to install.
 - **`DEAPI_API_KEY`** in the agent's environment. Keys look like `sk-dp-<id>-<secret>`; use
-  them as they are. Create one at https://app.deapi.ai (Settings > API Keys).
+  them as they are. Create one at https://app.deapi.ai/settings/api-keys.
 - **Recommended:** a dedicated key with the **API** role and a **daily spend limit** for the
   agent. deAPI enforces that limit itself, whatever the agent does (exit code 12 when used up).
   An ADMIN key also shows the balance, but an agent does not need it.

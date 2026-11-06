@@ -87,7 +87,7 @@ KEY_HELP = (
     "`export DEAPI_API_KEY=...` in your shell profile, for Hermes a `DEAPI_API_KEY=...` "
     "line in the .env file of the Hermes home folder (`hermes config env-path` shows "
     "where it is), or your agent's environment settings. Create a key at "
-    "https://app.deapi.ai (Settings > API Keys). Never paste the key into the chat."
+    "https://app.deapi.ai/settings/api-keys. Never paste the key into the chat."
 )
 SSL_HINT = (
     "TLS certificate check failed. On macOS with Python from python.org, run "
@@ -95,7 +95,7 @@ SSL_HINT = (
 )
 NOT_ACCEPTED_HINT = (
     "The job may have been accepted. Check `deapi.py account` or the dashboard at "
-    "https://app.deapi.ai before retrying, so you do not pay twice."
+    "https://app.deapi.ai/dashboard before retrying, so you do not pay twice."
 )
 
 # Task name -> inference types served for it (GET /api/v2/models filter values).
@@ -1070,7 +1070,7 @@ def map_http_error(status, payload, headers, method="GET", path=""):
                           api_code=code)
     if code == "insufficient_balance":
         return DeapiError("Not enough credit on the account for this job.", EXIT_BALANCE,
-                          "Top up at https://app.deapi.ai; the same request succeeds "
+                          "Top up at https://app.deapi.ai/billing; the same request succeeds "
                           "after that.", api_code=code)
     if code == "key_limit_exceeded" or status == 402:
         resets = payload.get("resets_at")
@@ -1445,7 +1445,7 @@ class Context(object):
                 return
             if isinstance(balance, (int, float)) and balance < total:
                 warn("the account balance (%s USD) is below the quoted %s USD; top up at "
-                     "https://app.deapi.ai." % (_fmt_usd(balance), _fmt_usd(total)))
+                     "https://app.deapi.ai/billing." % (_fmt_usd(balance), _fmt_usd(total)))
 
     # -- jobs ------------------------------------------------------------
 

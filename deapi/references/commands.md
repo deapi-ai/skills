@@ -258,7 +258,7 @@ command would pick). Prompts must have at least 3 characters. Use the returned
 | 3 | Key missing, invalid, expired or revoked | Tell the user how to set `DEAPI_API_KEY`. Never ask for the key in the chat. |
 | 4 | Key role too low, or IP not allowed | The user changes the key in the dashboard. |
 | 5 | Price above the limit, or unknown | Show the price and ask the user. Never raise the limit yourself. |
-| 6 | Not enough balance | The user tops up at https://app.deapi.ai. |
+| 6 | Not enough balance | The user tops up at https://app.deapi.ai/billing. |
 | 7 | Validation error, unknown model, or model not in the account's plan | Check `deapi.py models`, fix, quote again. |
 | 8 | The job failed | Report `error_code` and `error_reason`. Already retried once if refunded and retryable. |
 | 9 | Unknown state: timeout, or the connection dropped after submit | With `request_id` (timeout): `deapi.py status <request_id> --wait --download`. Without it (dropped submit): check `deapi.py account` or the dashboard first. Do not resubmit blindly. |

@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+- Hermes Agent MCP setup in `references/mcp.md` and `SKILL.md`: the server goes into
+  `mcp_servers` in `config.yaml` with `Bearer ${DEAPI_API_KEY}`, as in the README. Hermes
+  has no deAPI entry in its MCP catalog.
+
 ## 2.0.0 - 2026-11-05
 
 ### Added

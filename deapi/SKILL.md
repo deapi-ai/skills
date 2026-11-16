@@ -93,7 +93,8 @@ Not this skill: writing application code that calls deAPI (use `deapi-api`).
   An ADMIN key also shows the balance, but an agent does not need it.
 - **One key, two places:** the script reads `DEAPI_API_KEY`. MCP clients read it from their
   own settings: Claude Code `.mcp.json` with `${DEAPI_API_KEY}`, Codex
-  `bearer_token_env_var = "DEAPI_API_KEY"`, Hermes `MCP_DEAPI_API_KEY`. See `references/mcp.md`.
+  `bearer_token_env_var = "DEAPI_API_KEY"`, Hermes `config.yaml` with `${DEAPI_API_KEY}`. See
+  `references/mcp.md`.
 - **Hermes Agent** does not ask for the key on its own: the user adds a `DEAPI_API_KEY=...`
   line to the `.env` file of the Hermes home folder (`hermes config env-path` prints where
   it is), and Hermes passes it to the terminal.

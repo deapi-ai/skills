@@ -53,10 +53,21 @@ url = "https://mcp.deapi.ai/mcp"
 bearer_token_env_var = "DEAPI_API_KEY"
 ```
 
-**Hermes Agent**: a deAPI entry from the Hermes MCP catalog reads the key from
-`MCP_DEAPI_API_KEY` (Hermes names it `MCP_{SERVER}_API_KEY`). Put the same key in the
-`.env` file of the Hermes home folder (`hermes config env-path` prints where it is) under
-both names: `DEAPI_API_KEY` for the script and `MCP_DEAPI_API_KEY` for MCP.
+**Hermes Agent**: add the server to `config.yaml` in the Hermes home folder (`hermes config
+path` prints where it is). Hermes fills in `${DEAPI_API_KEY}` from the `.env` file of the
+Hermes home folder (`hermes config env-path`), so the script and MCP use the same line there:
+
+```yaml
+mcp_servers:
+  deapi:
+    url: https://mcp.deapi.ai/mcp
+    headers:
+      Authorization: "Bearer ${DEAPI_API_KEY}"
+```
+
+Tools then appear as `mcp__deapi__{tool}`. Start a new session or run `/reload-mcp` after
+editing the file. `hermes mcp add deapi --url https://mcp.deapi.ai/mcp --auth header` sets up
+the same server interactively, but it stores the key a second time, as `MCP_DEAPI_API_KEY`.
 
 **Apps without config files** (claude.ai connectors, ChatGPT apps): OAuth.
 

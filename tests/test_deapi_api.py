@@ -44,6 +44,16 @@ TEST_KEY = "sk-dp-0-TESTKEYNOTREAL"
 PNG = (b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06"
        b"\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\rIDATx\x9cc\xf8\x0f\x00\x00\x01\x01\x00"
        b"\x05\x18\xd8N\x00\x00\x00\x00IEND\xaeB`\x82")
+# A chat entry of GET /v1/models: public field names, invented values.
+CHAT_MODEL = {"id": "qwen3.8-flash", "object": "model", "created": 1700000000, "owned_by": "deapi",
+              "context_length": 100000, "top_provider": {"max_completion_tokens": 10000},
+              "architecture": {"input_modalities": ["text", "image"], "output_modalities": ["text"]},
+              "supported_parameters": ["max_tokens", "temperature", "reasoning_effort"],
+              "pricing": {"prompt": "0.0000001", "completion": "0.0000004",
+                          "input_cache_read": "0.00000001"}}
+CHAT_USAGE = {"prompt_tokens": 12, "completion_tokens": 3, "total_tokens": 15,
+              "prompt_tokens_details": {"cached_tokens": 0},
+              "completion_tokens_details": {"reasoning_tokens": 0}, "cost": 0.0000024}
 NODE = shutil.which("node")
 CURL = shutil.which("curl")
 SH = shutil.which("sh")
@@ -274,7 +284,9 @@ class FakeServer(object):
         if method == "GET" and path == "/v1/models":
             return 200, {"object": "list", "data": [
                 {"id": m["slug"], "object": "model", "created": 1700000000, "owned_by": "deapi"}
-                for m in self.models]}, {}
+                for m in self.models] + [CHAT_MODEL]}, {}
+        if method == "POST" and path == "/v1/chat/completions":
+            return self._chat(call.json)
         if method == "POST" and path == "/v1/embeddings":
             items = call.json["input"]
             items = items if isinstance(items, list) else [items]
@@ -303,6 +315,25 @@ class FakeServer(object):
             return 200, self._video(match.group(1), "completed", {}), {}
         return 404, {"error": {"message": "not here", "type": "not_found_error",
                                "code": "endpoint_not_implemented"}}, {}
+
+    @staticmethod
+    def _chat(body):
+        if body.get("model") != CHAT_MODEL["id"]:
+            return 404, {"error": {"message": "The model does not exist.", "type":
+                                   "invalid_request_error", "code": "model_not_found"}}, {}
+        base = {"id": "chatcmpl-test", "created": 1700000000, "model": body["model"]}
+        if not body.get("stream"):
+            return 200, dict(base, object="chat.completion", choices=[{
+                "index": 0, "message": {"role": "assistant", "content": "Hello there."},
+                "finish_reason": "stop"}], usage=CHAT_USAGE), {"X-DeAPI-Cost": str(CHAT_USAGE["cost"])}
+        chunks = [dict(base, object="chat.completion.chunk", choices=[
+            {"index": 0, "delta": {"role": "assistant", "content": "Hello"}, "finish_reason": None}]),
+                  dict(base, object="chat.completion.chunk", choices=[
+                      {"index": 0, "delta": {"content": " there."}, "finish_reason": "stop"}])]
+        if (body.get("stream_options") or {}).get("include_usage"):
+            chunks.append(dict(base, object="chat.completion.chunk", choices=[], usage=CHAT_USAGE))
+        data = "".join("data: %s\n\n" % json.dumps(c) for c in chunks) + "data: [DONE]\n\n"
+        return 200, data.encode("utf-8"), {"Content-Type": "text/event-stream"}
 
     @staticmethod
     def _video(video_id, status, body):
@@ -424,7 +455,6 @@ class DocsTest(unittest.TestCase):
             if path == __file__:
                 continue
             text = read(path)
-            self.assertNotIn("usage.cost", text, rel)        # not on the public API yet
             self.assertNotIn("/api/v1/client/", text.replace("(`/api/v1/client/...`)", ""), rel)
 
 
@@ -876,6 +906,12 @@ class OpenAIPythonTest(unittest.TestCase):
             mod = load_module("openai_examples", os.path.join(ASSETS, "openai_examples.py"))
             client = mod.make_client()
             self.assertIn("Flux1schnell", mod.list_models(client))
+            models = mod.chat_models(client)
+            self.assertEqual(list(models), ["qwen3.8-flash"])
+            self.assertAlmostEqual(models["qwen3.8-flash"]["output_per_1m"], 0.4)
+            self.assertEqual(mod.chat(client, "hi"), ("Hello there.", CHAT_USAGE["cost"]))
+            chat_call = [c for c in fake.calls if c.path == "/v1/chat/completions"][0]
+            self.assertTrue(chat_call.json["stream_options"]["include_usage"])
             out = mod.image(client, "fox", os.path.join(tmp, "fox.png"))
             with open(out, "rb") as handle:
                 self.assertEqual(handle.read(), PNG)
@@ -927,7 +963,8 @@ class OpenAIPythonTest(unittest.TestCase):
             self.run_blocks(os.path.join(REFS, "openai.md"), fake,
                             [("https://oai.deapi.ai/v1", fake.base + "/v1")])
             paths = {c.path for c in fake.calls}
-            for path in ("/v1/models", "/v1/embeddings", "/v1/images/generations",
+            for path in ("/v1/models", "/v1/chat/completions", "/v1/embeddings",
+                         "/v1/images/generations",
                          "/v1/audio/speech", "/v1/audio/transcriptions", "/v1/videos"):
                 self.assertIn(path, paths)
 
@@ -974,6 +1011,7 @@ class OpenAINodeTest(unittest.TestCase):
                 return out.stdout
 
             self.assertIn("Flux1schnell", node("models"))
+            self.assertIn("Hello there.", node("chat", "hi"))
             node("image", "fox", "fox.png")
             node("speech", "hello", "hi.mp3")
             self.assertIn("Good morning.", node("transcribe", "a.mp3"))

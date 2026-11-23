@@ -121,7 +121,7 @@
    }
   },
   {
-   "slug": "Nanonets_Ocr_S_F16",
+   "slug": "ExampleOcr",
    "name": "Example OCR",
    "inference_types": [
     "img2txt"
@@ -210,7 +210,7 @@
    }
   },
   {
-   "slug": "WhisperLargeV3",
+   "slug": "ExampleTranscriber",
    "name": "Example Whisper",
    "inference_types": [
     "audio2text",
@@ -493,7 +493,7 @@
    ]
   },
   {
-   "slug": "AceStep_1_5_Turbo",
+   "slug": "AceStep_1_5_XL_Turbo_INT8",
    "name": "Example music",
    "inference_types": [
     "txt2music"

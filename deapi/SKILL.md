@@ -1,10 +1,10 @@
 ---
 name: deapi
-description: Transcribes audio, makes images, video, speech via deAPI. It can transcribe or subtitle files and YouTube, X, TikTok or Twitch links; generate images from a text prompt, edit or upscale them, remove backgrounds and read text from images (OCR); turn text or a photo into video and describe videos; read text aloud, also in the user's own voice cloned from a short sample; make music; compute embeddings; and improve prompts for image and video generators. Use when the user wants any of this done now, unless they name another provider. Quotes the price before every paid job. Also connects the deAPI MCP server to an agent and reports the key's limits, balance and spending. Not for chat, summaries or other LLM text generation.
+description: Transcribes audio, makes images, video, speech via deAPI. It can transcribe or subtitle files and YouTube, X, TikTok or Twitch links; generate images from a text prompt, edit or upscale them, remove backgrounds and read text from images (OCR); turn text or a photo into video and describe videos; read text aloud, also in the user's own voice cloned from a short sample; make music; compute embeddings; and improve prompts for image and video generators. Use when the user wants any of this done now, unless they name another provider. Quotes the price before every paid job. Also connects the deAPI MCP server to an agent and reports the key's limits, balance and spending. Not for chat, summaries or other LLM text generation; deAPI's chat models are called from code through its OpenAI-compatible API (the deapi-api skill).
 license: MIT
 compatibility: Runs in agents with a terminal and network access (Claude Code, Codex, Cursor, Hermes, OpenClaw). Needs Python 3.9+ and DEAPI_API_KEY. Not for claude.ai uploads or the Skills API; use the deAPI MCP connector there.
 metadata:
-  version: "2.0.0"
+  version: "2.1.0"
   author: "deAPI"
   openclaw:
     requires:
@@ -73,7 +73,12 @@ video of...", "read this text aloud", "clone my voice", "make a lofi track", "de
 happens in this clip", "embed these sentences", "how much did I spend on deAPI",
 "connect the deAPI tools to Claude Code".
 
-Not this skill: writing application code that calls deAPI (use `deapi-api`).
+Not this skill:
+- Writing application code that calls deAPI (use `deapi-api`).
+- Chat, summaries or other text from an LLM. The script and the MCP tools do not call deAPI's
+  chat models; they are served only by the OpenAI-compatible API (`https://oai.deapi.ai/v1`,
+  `POST /chat/completions`, any OpenAI SDK with that base URL). Building that into an app is
+  `deapi-api`; docs: https://docs.deapi.ai/openai-compatibility#chat-completions-llms.
 
 **Script or MCP tools** (one rule, see `references/mcp.md`):
 - **Local files** (audio, video, images on disk): the script. Remote MCP cannot read the disk,
@@ -199,9 +204,8 @@ available. Below, `deapi.py` stands for that path.
   https://docs.deapi.ai/architecture-and-security.md.
 - **Voice cloning:** only clone a voice the user owns or has permission to use.
 - **Transcription language:** `--lang` takes a 2-letter ISO 639-1 code. deAPI has no
-  translation endpoint; a wrong code gives a translation. `WhisperLargeV3` does not use
-  `lang`; prefer the default `WhisperLargeV3Ct2`, which also gives word timestamps,
-  speaker labels and TikTok.
+  translation endpoint; a wrong code gives a translation. Keep the default
+  `WhisperLargeV3Ct2`, which also gives word timestamps, speaker labels and TikTok.
 - **TikTok cannot be priced from the link.** Ask the user how long the video is and pass
   `--duration SEC`; never guess a length to get past the cost check.
 - **Never invent a link to get a quote.** For "how much would N minutes cost" without a

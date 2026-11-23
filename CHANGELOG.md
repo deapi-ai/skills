@@ -1,6 +1,26 @@
 # Changelog
 
-## Unreleased
+## 2.1.0 - 2026-11-23
+
+### Added
+- Chat completions with deAPI's LLMs, served to every account since 20 November 2026 on the
+  OpenAI-compatible API only: `deapi-api` covers models and prices from `GET /v1/models`, cost
+  per call (`usage.cost`, `X-DeAPI-Cost`), streaming, reasoning, tools, structured outputs,
+  image input, per-model limits, errors and framework settings (LangChain, LlamaIndex, LiteLLM,
+  `@deapi/ai-sdk-provider`). `openai_examples.py` and `.ts` gain `chat` (and Python
+  `chat-models`), tested against the local fake.
+- `deapi` points chat requests to the OpenAI-compatible API; the script and the MCP tools still
+  do media only.
+- README: the Hermes `deapi-provider` plugin for deAPI chat models, the Vercel AI SDK provider.
+
+### Changed
+- `openai.md` no longer says `/v1/chat/completions` is not served; only `/v1/responses` is
+  missing. Chat completions are the one endpoint that streams.
+- `tools/scan_leaks.py` no longer warns about chat wording in skill content.
+- Without `--model`, `ocr` picks `LightOnOcr_3_4B_Q8` (LightOnOCR 3), which replaces the
+  Nanonets model, and `music` picks `AceStep_1_5_XL_Turbo_INT8`, which replaces `AceStep_1_5_Turbo`.
+- `WhisperLargeV3` is gone from deAPI's catalog; the docs no longer mention it. Test fixtures
+  no longer use the retired models.
 
 ### Fixed
 - Hermes Agent MCP setup in `references/mcp.md` and `SKILL.md`: the server goes into

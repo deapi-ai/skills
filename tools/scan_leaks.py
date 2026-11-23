@@ -4,7 +4,7 @@
 Blocking findings: API keys and other tokens, non-placeholder bearer tokens,
 non-public hosts, task numbers, agent session links, machine-specific paths,
 personal e-mail addresses, real-looking IP addresses, and key previews in test
-fixtures. Warnings only: chat/LLM wording in skill content (not shipped yet).
+fixtures.
 
 Usage:
   python tools/scan_leaks.py                  # files in the working tree (git ls-files)
@@ -30,7 +30,6 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ALLOW_MARK = "leak-scan: allow"
 PLACEHOLDER_KEY = "sk-dp-0-TESTKEYNOTREAL"
 SPEC_SNAPSHOT = "tests/fixtures/openapi.json"
-SKILL_DIRS = ("deapi/", "deapi-api/")
 
 # (category, regex). Keep every pattern generic: this file is public.
 PATTERNS = [
@@ -65,8 +64,6 @@ DOC_NETS = [ipaddress.ip_network(n) for n in (
     "0.0.0.0/8", "10.0.0.0/8", "127.0.0.0/8", "169.254.0.0/16", "172.16.0.0/12",
     "192.0.2.0/24", "192.168.0.0/16", "198.18.0.0/15", "198.51.100.0/24", "203.0.113.0/24",
     "224.0.0.0/4", "240.0.0.0/4")]
-WARN_PATTERNS = [("chat-wording", r"\bLLMs?\b"), ("chat-wording", r"\bchat models?\b"),
-                 ("chat-wording", r"\breasoning\b")]
 PREVIEW_OK = re.compile(r"^sk-dp-\d+-\.\.\.0+$")
 
 
@@ -98,7 +95,7 @@ def load_extra(path):
     return extra
 
 
-def scan_text(text, where, patterns, warn_words=False, check_ips=True):
+def scan_text(text, where, patterns, check_ips=True):
     findings = []
     for number, line in enumerate(text.splitlines(), 1):
         if ALLOW_MARK in line:
@@ -123,10 +120,6 @@ def scan_text(text, where, patterns, warn_words=False, check_ips=True):
                     continue
                 if not any(addr in net for net in DOC_NETS):
                     findings.append(Finding(loc, "ip-address", match.group(1)))
-        if warn_words:
-            for category, regex in WARN_PATTERNS:
-                if re.search(regex, line, re.I if "chat" in regex else 0):
-                    findings.append(Finding(loc, category, line.strip()[:80], blocking=False))
     return findings
 
 
@@ -159,8 +152,7 @@ def scan_fixture_json(text, where):
 def scan_file(rel, text, patterns):
     rel = rel.replace("\\", "/")
     is_spec = rel == SPEC_SNAPSHOT
-    findings = scan_text(text, rel, patterns, warn_words=rel.startswith(SKILL_DIRS),
-                         check_ips=not is_spec)
+    findings = scan_text(text, rel, patterns, check_ips=not is_spec)
     if rel.startswith("tests/fixtures/") and rel.endswith(".json") and not is_spec:
         findings.extend(scan_fixture_json(text, rel))
     return findings

@@ -141,10 +141,6 @@ class LeakScanTests(unittest.TestCase):
         ok = '{"preview": "sk-dp-1-...0000"}'
         self.assertEqual(leaks.scan_file("tests/fixtures/key2.json", ok, leaks.PATTERNS), [])
 
-    def test_chat_words_only_warn(self):
-        found = leaks.scan_file("deapi/SKILL.md", "LLM chat models", leaks.PATTERNS)
-        self.assertTrue(found and not any(f.blocking for f in found))
-
     def test_repository_is_clean(self):
         findings = []
         for rel in leaks.tree_files():

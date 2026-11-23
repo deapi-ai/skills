@@ -233,7 +233,7 @@ command would pick). Prompts must have at least 3 characters. Use the returned
 
 | Command | What it does |
 |---|---|
-| `models [SLUG] [--type TASK] [--details] [--oai]` | Models this key may use. `--type` takes a command name (`image`, `tts`, `transcribe`, ...) or an inference type (`txt2img`). `SLUG` shows one full model card; `--details`/`--json` full cards (limits, features, defaults, languages, voices); `--oai` the model IDs of the OpenAI-compatible API (it may list models for endpoints this skill does not use, such as chat). |
+| `models [SLUG] [--type TASK] [--details] [--oai]` | Models this key may use. `--type` takes a command name (`image`, `tts`, `transcribe`, ...) or an inference type (`txt2img`). `SLUG` shows one full model card; `--details`/`--json` full cards (limits, features, defaults, languages, voices); `--oai` the model IDs of the OpenAI-compatible API (it also lists the chat models, which this skill does not call). |
 | `status ID [--wait] [--download] [--format jpg\|webp] [--output NAME]` | A job by `request_id` (or `job:<id>`): status, progress, price, result. `--wait` until it finishes, `--download` saves the result. For a running job: wait, do not submit again. |
 | `account` (alias `balance`) `[--days N \| --from DATE --to DATE]` | The key's role, spend limit and what is left, usage for the period (default 30 days, up to 90), and the balance with an ADMIN key. |
 | `doctor` | Python version, `ffprobe`, whether the key is set (never its value), connection and latency, key role and limits, rate-limit headers, the OpenAI-compatible API. `"ok": true` when the script can run jobs; `problems` lists what blocks it, `warnings` are advice (an ADMIN key, no spend limit) and do not make `ok` false. |

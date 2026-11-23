@@ -123,7 +123,7 @@ TASK_ALIASES = {"stt": "transcribe", "speech": "tts", "embedding": "embed",
 PREFERENCES = {
     "image": [r"klein", r"flux"],
     "edit": [r"klein", r"qwen"],
-    "ocr": [r"nanonets", r"ocr"],
+    "ocr": [r"lighton", r"ocr"],
     "rmbg": [r"ben"],
     "upscale": [r"esrgan"],
     "video": [r"ltx"],
@@ -132,7 +132,7 @@ PREFERENCES = {
     "video-upscale": [r"esrgan"],
     "describe": [r"marlin"],
     "tts": [r"kokoro"],
-    "music": [r"ace"],
+    "music": [r"acestep\w*_xl\w*turbo", r"acestep\w*_xl", r"ace"],
     # Ct2 gives word timestamps, diarization and TikTok, and honours `lang`.
     "transcribe": [r"ct2", r"whisper"],
     "embed": [r"bge"],

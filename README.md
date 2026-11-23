@@ -34,7 +34,7 @@ above your limit (0.25 USD per job by default).
 | Skill | Use it to | How it works |
 |---|---|---|
 | **[deapi](deapi)** | Get something done now: transcribe or subtitle a file or a YouTube, X, TikTok, Twitch or Kick link; generate, edit and upscale images; remove backgrounds; read text from images (OCR); turn text or a photo into video and describe videos; speech with preset voices, a cloned voice or a designed voice; music; embeddings; better prompts; job status; account and key limits. | A helper script (`deapi/scripts/deapi.py`, Python 3.9+, standard library only), or the deAPI MCP tools when they are connected. |
-| **[deapi-api](deapi-api)** | Build deAPI into an application: the native API v2, async jobs and webhooks, WebSockets, limits and errors, keys and usage, and OpenAI SDKs pointed at `https://oai.deapi.ai/v1`. | Reference pages and tested code examples (Python, TypeScript, Node, curl). It runs nothing on its own. |
+| **[deapi-api](deapi-api)** | Build deAPI into an application: the native API v2, async jobs and webhooks, WebSockets, limits and errors, keys and usage, and OpenAI SDKs pointed at `https://oai.deapi.ai/v1`, including chat completions with deAPI's open LLMs. | Reference pages and tested code examples (Python, TypeScript, Node, curl). It runs nothing on its own. |
 
 ## Install
 
@@ -89,8 +89,17 @@ the terminal where the script runs:
 DEAPI_API_KEY=sk-dp-...
 ```
 
-If your deAPI account has access to chat models, Hermes can also use one as its main model
-through the OpenAI-compatible API (`hermes model`, "Custom endpoint", or in `config.yaml`):
+Hermes can also use one of deAPI's chat models as its main model. The
+[`deapi-provider`](https://github.com/deapi-ai/hermes-plugin-deapi/tree/main/deapi-provider)
+plugin adds deAPI to Hermes' model picker:
+
+```bash
+hermes plugins install "https://github.com/deapi-ai/hermes-plugin-deapi#deapi-provider" --enable
+hermes model    # select deAPI, then a model and a reasoning effort
+```
+
+Without the plugin, use a custom endpoint (`hermes model`, "Custom endpoint", or in
+`config.yaml`):
 
 ```yaml
 model:
@@ -100,8 +109,8 @@ model:
   default: <a chat model ID from GET https://oai.deapi.ai/v1/models>
 ```
 
-A text-only chat model cannot handle Hermes' image tasks (vision); point `auxiliary.vision` at
-another provider if you need them.
+`glm-5.3` and `hy3` are text-only and cannot handle Hermes' image tasks (vision); pick another
+deAPI chat model, or point `auxiliary.vision` at another provider.
 
 To make deAPI the engine behind Hermes' built-in `image_generate` and `video_generate` tools,
 install the [deAPI plugin](https://github.com/deapi-ai/hermes-plugin-deapi)
@@ -206,8 +215,13 @@ including exit codes, is in [deapi/references/commands.md](deapi/references/comm
 - **MCP server:** `https://mcp.deapi.ai/mcp` exposes the same jobs as MCP tools
   ([deapi-ai/mcp-server-deapi](https://github.com/deapi-ai/mcp-server-deapi)). Use it in clients
   without a terminal, such as claude.ai.
-- **OpenAI-compatible API:** `https://oai.deapi.ai/v1` works with OpenAI SDKs for images,
-  speech, transcriptions, embeddings and videos.
+- **OpenAI-compatible API:** `https://oai.deapi.ai/v1` works with OpenAI SDKs for chat
+  completions with open LLMs (the only way to deAPI's chat models), images, speech,
+  transcriptions, embeddings and videos
+  ([docs](https://docs.deapi.ai/openai-compatibility#chat-completions-llms)).
+- **Vercel AI SDK:** [`@deapi/ai-sdk-provider`](https://github.com/deapi-ai/deapi-ai-sdk-provider)
+  (0.4 for AI SDK 7) covers chat with the cost of each call, images, video, embeddings, speech
+  and transcription.
 - **Native REST API:** [docs.deapi.ai](https://docs.deapi.ai)
   (OpenAPI: [openapi.json](https://docs.deapi.ai/openapi.json)).
 - **Python SDK:** [deapi-ai/deapi-python-sdk](https://github.com/deapi-ai/deapi-python-sdk) wraps

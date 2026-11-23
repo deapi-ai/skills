@@ -74,7 +74,6 @@ https://docs.deapi.ai/models.md.
 
 - The default is `WhisperLargeV3Ct2`: word timestamps, speaker labels (`--diarize`), TikTok
   links, and it uses `--lang`. Keep it unless the user names another model.
-- `WhisperLargeV3` does not use `lang`. Prefer the default.
 - `--lang` takes a 2-letter ISO 639-1 code. Set it only when you know the spoken language: a
   wrong code returns a translation instead of a transcript.
 

@@ -2,11 +2,13 @@
 // Tested with openai 7.51.0; `video` needs a release that has client.videos (not 4.x).
 //
 //   DEAPI_API_KEY=sk-dp-... npx tsx openai_examples.ts models                      # free
+//   DEAPI_API_KEY=sk-dp-... npx tsx openai_examples.ts chat "Explain embeddings"   # paid
 //   DEAPI_API_KEY=sk-dp-... npx tsx openai_examples.ts image "a red fox" fox.png   # paid
 //   ... speech TEXT OUT.mp3 | transcribe FILE | embed TEXT... | video PROMPT OUT.mp4 (paid)
 //
-// No price quotes on this API: quote the same job on the native API (POST .../price) when the
-// cost matters. Model IDs are native deAPI IDs and depend on the account: see `models`.
+// No price quotes on this API: quote the same media job on the native API (POST .../price) when
+// the cost matters. Chat reports its cost in each response (usage.cost, USD). Model IDs are
+// deAPI's own and depend on the account: see `models`.
 // DEAPI_OAI_URL (default https://oai.deapi.ai/v1) may name another *.deapi.ai host or a local mock.
 
 import { createReadStream } from "node:fs";
@@ -30,6 +32,23 @@ export function makeClient(): OpenAI {
 export async function listModels(client: OpenAI): Promise<string[]> {
   const page = await client.models.list();
   return page.data.map((m) => m.id);
+}
+
+export async function chat(client: OpenAI, prompt: string, model = "qwen3.8-flash",
+                           maxTokens = 2000): Promise<{ text: string; cost: number | null }> {
+  // Streamed; the last chunk (stream_options.include_usage) carries usage.cost in USD.
+  // max_tokens includes reasoning tokens.
+  const stream = await client.chat.completions.create({
+    model, messages: [{ role: "user", content: prompt }], max_tokens: maxTokens,
+    stream: true, stream_options: { include_usage: true },
+  });
+  let text = "";
+  let cost: number | null = null;
+  for await (const chunk of stream) {
+    text += chunk.choices[0]?.delta?.content ?? "";
+    if (chunk.usage) cost = (chunk.usage as any).cost ?? null; // a deAPI field
+  }
+  return { text, cost };
 }
 
 export async function image(client: OpenAI, prompt: string, out: string, model = "Flux1schnell"): Promise<string> {
@@ -85,6 +104,12 @@ async function main(argv: string[]): Promise<number> {
   const client = makeClient();
   switch (command) {
     case "models": console.log((await listModels(client)).join("\n")); return 0;
+    case "chat": {
+      const { text, cost } = await chat(client, args[0]);
+      console.log(text);
+      console.error(`cost: ${cost} USD`);
+      return 0;
+    }
     case "image": console.log(await image(client, args[0], args[1])); return 0;
     case "speech": console.log(await speech(client, args[0], args[1])); return 0;
     case "transcribe": console.log(await transcribe(client, args[0])); return 0;
@@ -95,7 +120,7 @@ async function main(argv: string[]): Promise<number> {
     }
     case "video": console.log(await video(client, args[0], args[1])); return 0;
     default:
-      console.error("usage: openai_examples.ts models|image|speech|transcribe|embed|video ...");
+      console.error("usage: openai_examples.ts models|chat|image|speech|transcribe|embed|video ...");
       return 2;
   }
 }

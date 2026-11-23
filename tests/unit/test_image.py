@@ -13,7 +13,7 @@ class ImageTest(CliTest):
         # Live cards give both sides; the shared fixture gives only the width.
         for model in self.fake.models:
             limits = (model.get("info") or {}).get("limits") or {}
-            if model["slug"] in ("Ben2", "RealESRGAN_x4", "Nanonets_Ocr_S_F16"):
+            if model["slug"] in ("Ben2", "RealESRGAN_x4", "ExampleOcr"):
                 limits.setdefault("min_height", limits.get("min_width"))
                 limits.setdefault("max_height", limits.get("max_width"))
 
@@ -339,6 +339,15 @@ class TestOcr(ImageTest):
         res = self.run_cli("ocr", self.png(), "--format", "json")
         self.assertEqual(res.code, 0, res.err)
         self.assertTrue(res.json["text_file"].endswith(".json"))
+
+    def test_prefers_lighton(self):
+        import copy
+        base = [m for m in self.fake.models if m["slug"] == "ExampleOcr"][0]
+        lighton = dict(copy.deepcopy(base), slug="LightOnOcr_Example", name="Example LightOn OCR")
+        self.fake.models.append(lighton)
+        res = self.run_cli("ocr", self.png(), "--quote")
+        self.assertEqual(res.code, 0, res.err)
+        self.assertEqual(res.json["model"], "LightOnOcr_Example")
 
     def test_bad_language(self):
         res = self.run_cli("ocr", self.png(), "--lang", "no such", "--quote")

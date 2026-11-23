@@ -283,7 +283,7 @@ class MusicTests(AudioTest):
         self.assertIn("replaced by 8", res.err)
 
     def test_free_steps_clamped(self):
-        limits = model(self.fake, "AceStep_1_5_Turbo")["info"]["limits"]
+        limits = model(self.fake, "AceStep_1_5_XL_Turbo_INT8")["info"]["limits"]
         limits.update(min_steps=8, max_steps=50)
         self.run_cli("music", "--caption", "calm piano", "--steps", "80", "--quote")
         self.assertEqual(self.quote().json["inference_steps"], 50)
@@ -296,14 +296,14 @@ class MusicTests(AudioTest):
         self.no_posts()
 
     def test_duration_cap_by_format(self):
-        limits = model(self.fake, "AceStep_1_5_Turbo")["info"]["limits"]
+        limits = model(self.fake, "AceStep_1_5_XL_Turbo_INT8")["info"]["limits"]
         limits["max_duration_by_format"] = {"mp3": 60}
         res = self.run_cli("music", "--caption", "calm piano", "--duration", "90")
         self.assertEqual(res.code, core.EXIT_USAGE)
         self.assertEqual(res.error["max_duration"], 60)
 
     def test_caption_length(self):
-        model(self.fake, "AceStep_1_5_Turbo")["info"]["limits"].update(min_caption=3,
+        model(self.fake, "AceStep_1_5_XL_Turbo_INT8")["info"]["limits"].update(min_caption=3,
                                                                        max_caption=10)
         res = self.run_cli("music", "--caption", "a very long caption indeed")
         self.assertEqual(res.code, core.EXIT_USAGE)
@@ -333,7 +333,7 @@ class MusicTests(AudioTest):
         self.assertEqual(res.code, core.EXIT_USAGE)
 
     def test_reference_audio(self):
-        model(self.fake, "AceStep_1_5_Turbo")["info"]["limits"].update(
+        model(self.fake, "AceStep_1_5_XL_Turbo_INT8")["info"]["limits"].update(
             min_ref_audio_duration=5, max_ref_audio_duration=60)
         res = self.run_cli("music", "--caption", "pop",
                            "--reference-audio", self.wav("ref.wav", seconds=2))
@@ -394,12 +394,12 @@ class TranscribeTests(AudioTest):
         self.assertEqual((quote.field("diarize"), quote.field("include_ts"),
                           quote.field("ts_level")), ("1", "1", "word"))
         res = self.run_cli("transcribe", "https://youtu.be/abc", "--diarize",
-                           "--model", "WhisperLargeV3", "--quote")
+                           "--model", "ExampleTranscriber", "--quote")
         self.assertEqual(res.code, core.EXIT_VALIDATION)
 
     def test_ts_level_checked(self):
         res = self.run_cli("transcribe", "https://youtu.be/abc", "--ts-level", "word",
-                           "--model", "WhisperLargeV3", "--quote")
+                           "--model", "ExampleTranscriber", "--quote")
         self.assertEqual(res.code, core.EXIT_USAGE)
         res = self.run_cli("transcribe", "https://youtu.be/abc", "--ts-level", "char",
                            "--quote")
@@ -412,7 +412,7 @@ class TranscribeTests(AudioTest):
                            "--model", "WhisperLargeV3Ct2", "--quote")
         self.assertEqual(res.code, core.EXIT_VALIDATION)
         res = self.run_cli("transcribe", "https://youtu.be/abc", "--lang", "pl", "--quote")
-        self.assertEqual(res.json["model"], "WhisperLargeV3")
+        self.assertEqual(res.json["model"], "ExampleTranscriber")
 
     def test_file_lengths_from_headers(self):
         cases = [(self.mp3_cbr(), 100 * 417 * 8 / 128000.0),
@@ -533,7 +533,7 @@ class TranscribeTests(AudioTest):
 
     def test_subtitles_from_inline_timestamps(self):
         self.fake.result_text = "[0:00 - 0:02.5] Hello there.\n[0:03 - 1:02:03] Bye now.\n"
-        res = self.run_cli("transcribe", "https://youtu.be/abc", "--model", "WhisperLargeV3",
+        res = self.run_cli("transcribe", "https://youtu.be/abc", "--model", "ExampleTranscriber",
                            "--subtitles", "srt")
         with open(res.json["subtitles_file"], encoding="utf-8") as handle:
             srt = handle.read()

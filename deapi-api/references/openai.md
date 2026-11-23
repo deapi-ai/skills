@@ -2,11 +2,13 @@
 
 Point an official OpenAI SDK (or any tool with a base URL setting) at
 `https://oai.deapi.ai/v1` and call deAPI models with OpenAI request and response shapes.
+This is also the only way to deAPI's chat models (LLMs): the native API v2 has no chat endpoint.
 Docs: https://docs.deapi.ai/openai-compatibility.md.
 
 - API key: the deAPI key as is (`sk-dp-<id>-<secret>`), in `Authorization: Bearer`.
-- Model IDs: **native only** (`Flux1schnell`, `Kokoro`, `WhisperLargeV3Ct2`, …). There are no
-  `dall-e-3`, `tts-1` or `whisper-1` aliases; those names answer 404 `model_not_found`.
+- Model IDs: **deAPI's own only** (`Flux1schnell`, `Kokoro`, `WhisperLargeV3Ct2`, …; chat models
+  such as `qwen3.8-flash`). There are no `dall-e-3`, `tts-1`, `whisper-1` or `gpt-4o` aliases;
+  those names answer 404 `model_not_found`.
 - The model list depends on the account's plan: build on `GET /v1/models`.
 - Keys with an IP allowlist do not work here; use a key without one, or the native API.
 
@@ -22,7 +24,7 @@ from openai import OpenAI
 deapi = OpenAI(
     api_key=os.environ.get("DEAPI_API_KEY", ""),  # never None: no fallback to OPENAI_API_KEY
     base_url="https://oai.deapi.ai/v1",
-    timeout=900.0,   # jobs hold the connection until they finish (up to ~10 minutes)
+    timeout=900.0,   # media jobs hold the connection until they finish (up to ~10 minutes)
 )
 print([m.id for m in deapi.models.list().data])
 ```
@@ -51,7 +53,8 @@ Complete runnable examples: `assets/openai_examples.py` and `assets/openai_examp
 
 | Endpoint | Mode | Notes |
 |---|---|---|
-| `GET /v1/models`, `GET /v1/models/{model}` | sync | `{id, object, created, owned_by}`; cached 5 minutes |
+| `GET /v1/models`, `GET /v1/models/{model}` | sync | `{id, object, created, owned_by}`, chat models also price and limits; cached 5 minutes |
+| `POST /v1/chat/completions` | sync or streamed | chat models (LLMs) |
 | `POST /v1/embeddings` | sync | `Bge_M3_FP16`, 1024 dimensions |
 | `POST /v1/images/generations` | holds the connection | text to image |
 | `POST /v1/images/edits` | holds the connection | multipart or JSON with `images: [{"image_url": …}]` |
@@ -61,6 +64,81 @@ Complete runnable examples: `assets/openai_examples.py` and `assets/openai_examp
 
 Each response has `X-Request-Id` (quote it to support) and job endpoints add
 `X-DeAPI-Request-Id` (the native job ID, comma-separated when a request fans out).
+
+### Chat completions (LLMs)
+
+```python
+reply = deapi.chat.completions.create(
+    model="qwen3.8-flash",
+    messages=[{"role": "user", "content": "Explain vector embeddings in two sentences."}],
+    max_tokens=2000,           # includes reasoning tokens
+    reasoning_effort="low",
+)
+print(reply.choices[0].message.content)
+print(reply.usage.cost)        # USD charged for this call (a deAPI field)
+```
+
+Streamed, with the cost in the last chunk:
+
+```python
+stream = deapi.chat.completions.create(
+    model="qwen3.8-flash",
+    messages=[{"role": "user", "content": "Write a haiku about GPUs."}],
+    stream=True,
+    stream_options={"include_usage": True},
+)
+for chunk in stream:
+    if chunk.choices and chunk.choices[0].delta.content:
+        print(chunk.choices[0].delta.content, end="", flush=True)
+    if chunk.usage:            # last chunk: empty choices, full usage
+        print("\ncost:", chunk.usage.cost)
+```
+
+Chat models this key can call, with prices per million tokens:
+
+```python
+for m in deapi.models.list().data:
+    if getattr(m, "context_length", None):       # only chat entries have it
+        pricing = m.pricing                       # USD per token, decimal strings
+        print(m.id, m.context_length,
+              float(pricing["prompt"]) * 1e6, float(pricing["completion"]) * 1e6)
+```
+
+- **Models:** 13 at the time of writing (`deepseek-v4.1-flash`, `deepseek-v4.1-flash:economy`,
+  `glm-5.3`, `glm-5.3-flash`, `gpt-6-luna`, `hy3`, `kimi-k3`, `qwen3.8-flash`, `qwen3.8-max`,
+  `seed-2.0-lite`, `seed-2.0-mini`, `seed-2.0-pro`, `seed-2.1-turbo`), available to every account.
+  Build on `GET /v1/models`: chat entries are the ones with `context_length`, and they carry
+  `pricing` (`prompt`, `completion`, `input_cache_read`, `input_cache_write` where billed),
+  `top_provider.max_completion_tokens`, `architecture.input_modalities` and
+  `supported_parameters`. They are not in the native `GET /api/v2/models`.
+  `deepseek-v4.1-flash:economy` is the same model at a lower price; pass the whole ID.
+- **Cost:** no price quote; each response reports what it cost in `usage.cost` (USD), also in
+  the `X-DeAPI-Cost` header when not streamed, and in the final chunk of a stream sent with
+  `stream_options.include_usage`. `usage.prompt_tokens_details.cached_tokens` is the part billed
+  at the cached price. To cap a call, set `max_tokens` and compute the worst case from
+  `pricing`. Store `usage.cost` per call for your own accounting.
+- **Reasoning:** `reasoning_effort` (`none`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`)
+  as far as the model accepts it: `glm-5.3` takes only `low`, `high` and `max` (thinking cannot
+  be turned off), `gpt-6-luna` has no `minimal`; a level the model lacks is 400
+  `unsupported_value`, and the message lists the accepted ones. Thinking comes back in
+  `message.reasoning_content` (`delta.reasoning_content` when streamed) and is billed as output.
+  `max_tokens` covers thinking and answer together: a low cap can return an empty `content`
+  with `finish_reason: "length"`, and that call is still billed.
+- **Parameters:** a field missing from the model's `supported_parameters` is rejected (400
+  `unsupported_parameter`), not dropped. `n` must be 1; `logprobs` is rejected. `json_object`
+  works everywhere, `json_schema` only where `supported_parameters` has `structured_outputs`
+  (not `glm-5.3`). `stop` is missing on `glm-5.3` and `gpt-6-luna`. `kimi-k3` accepts only
+  `temperature` 0, 0.6 or 1, `top_p` 0.95 and `presence_penalty`/`frequency_penalty` 0; other
+  values return 400 `unsupported_value`.
+- **Tools:** OpenAI function calling (`tools`, `tool_choice`, `parallel_tool_calls`); on
+  `finish_reason: "tool_calls"` append the assistant message and a `role: "tool"` message with
+  `tool_call_id`, then call again.
+- **Images in:** `image_url` content parts on models with `image` in
+  `architecture.input_modalities` (not `glm-5.3`, `hy3`: 400 `unsupported_content`). Send
+  base64 `data:` URLs; a public URL the provider cannot fetch is 400 `invalid_image_url`.
+- Chat does not go through the GPU job queue: answers take seconds, and the 900 s timeout above
+  is only needed for media jobs.
+- `Idempotency-Key` is ignored here: a repeated request is a second, billed call.
 
 ### Embeddings
 
@@ -127,8 +205,8 @@ print(t.text)
 ```
 
 - `WhisperLargeV3Ct2`: `json`, `text`, `verbose_json`, `diarized_json` (speakers `A`, `B`, …
-  stable only within one response), word timestamps. `WhisperLargeV3`: segments only; asking it
-  for words is 400 `timestamp_level_not_supported`.
+  stable only within one response), word timestamps. A model without word timestamps answers
+  `timestamp_granularities=["word"]` with 400 `timestamp_level_not_supported`.
 - `srt`/`vtt` are rejected; build subtitles from `verbose_json` segments.
 - `language` is passed to the model. `prompt`, `temperature` and `keywords[]` are accepted but
   have no effect. `stream`, `include[]`, `languages[]`, `chunking_strategy`, speaker references
@@ -172,7 +250,7 @@ OpenAI envelope: `{"error": {"message", "type", "param"?, "code"?}}`. Branch on 
 
 | HTTP | `code` / `type` | Meaning | Retry |
 |---|---|---|---|
-| 400 | `param_not_supported`, `size_not_supported`, `invalid_value`, `model_wrong_endpoint`, … | request problem; `param` names your field | no, fix it |
+| 400 | `param_not_supported`, `size_not_supported`, `invalid_value`, `model_wrong_endpoint`, `unsupported_parameter`, `unsupported_value`, `unsupported_content`, `invalid_image_url`, … | request problem; `param` names your field | no, fix it |
 | 401 | `missing_api_key`, `invalid_api_key` | key | no |
 | 404 | `model_not_found` | unknown, aliased, partner or out-of-plan model | no |
 | 404 | `endpoint_not_implemented`, `endpoint_not_found` | path not served | no |
@@ -194,12 +272,12 @@ OpenAI envelope: `{"error": {"message", "type", "param"?, "code"?}}`. Branch on 
 Node request options) replays the stored response for the same key and body, so a retry does
 not create a second job or charge. Scoped per key and endpoint, kept one hour, stored for 2xx
 only. Bodies over 1 MiB (multipart uploads) bypass it. Concurrent requests with the same key both
-run.
+run. Chat completions ignore it.
 
 ## Where OpenAI-compatible stops
 
-No price quotes on this API: to show a cost first, quote the same job on the native
-`…/price` endpoint. Not available here:
+No price quotes on this API: to show the cost of a media job first, quote the same job on the
+native `…/price` endpoint (chat reports its cost in each response instead). Not available here:
 
 | You need | Use |
 |---|---|
@@ -208,20 +286,20 @@ No price quotes on this API: to show a cost first, quote the same job on the nat
 | Voice cloning | native `POST /api/v2/audio/speech` with `mode=voice_clone` |
 | Price quotes, webhooks, prompt booster, partner models (`gpt-image-*`, `nano-banana-*`, …) | native API |
 | Last frame or reference images/videos for video | native `POST /api/v2/videos/animations` |
-| `/v1/files`, `/v1/audio/translations`, `/v1/moderations`, `/v1/images/variations`, assistants, batches, realtime | not available |
-| `/v1/chat/completions`, `/v1/responses` | not served (404 `endpoint_not_implemented`); `GET /v1/models` always shows what your account can call |
+| `/v1/responses`, `/v1/files`, `/v1/audio/translations`, `/v1/moderations`, `/v1/images/variations`, assistants, batches, realtime | not available (404 `endpoint_not_implemented`); use `/v1/chat/completions` for chat |
 
-No endpoint streams: `stream=true` is rejected.
+Only chat completions stream; every other endpoint rejects `stream=true`.
 
 ## Frameworks
 
-Anything with a base URL setting works. Use native model IDs.
+Anything with a base URL setting works. Use deAPI model IDs. A framework that sends chat to
+OpenAI's Responses API (`/v1/responses`) must be switched to chat completions.
 
 | Framework | Setting |
 |---|---|
-| LangChain | `OpenAIEmbeddings(model="Bge_M3_FP16", openai_api_base="https://oai.deapi.ai/v1", openai_api_key=...)` |
-| LlamaIndex | `OpenAIEmbedding(model="Bge_M3_FP16", api_base="https://oai.deapi.ai/v1", api_key=...)` |
-| LiteLLM | OpenAI-compatible route: `model="openai/Bge_M3_FP16"`, `api_base="https://oai.deapi.ai/v1"`, `api_key=...` |
-| Vercel AI SDK | `createOpenAI({ baseURL: "https://oai.deapi.ai/v1", apiKey: process.env.DEAPI_API_KEY })` from `@ai-sdk/openai` |
+| LangChain | chat: `ChatOpenAI(model="qwen3.8-flash", base_url="https://oai.deapi.ai/v1", api_key=...)`; embeddings: `OpenAIEmbeddings(model="Bge_M3_FP16", openai_api_base="https://oai.deapi.ai/v1", openai_api_key=...)` |
+| LlamaIndex | chat: `OpenAILike(model="qwen3.8-flash", api_base="https://oai.deapi.ai/v1", api_key=..., is_chat_model=True)` (`llama-index-llms-openai-like`); embeddings: `OpenAIEmbedding(model="Bge_M3_FP16", api_base="https://oai.deapi.ai/v1", api_key=...)` |
+| LiteLLM | OpenAI-compatible route: `model="openai/qwen3.8-flash"` (or `openai/Bge_M3_FP16`), `api_base="https://oai.deapi.ai/v1"`, `api_key=...` |
+| Vercel AI SDK | `@deapi/ai-sdk-provider` 0.4 or later (AI SDK 7): `deapi("qwen3.8-flash")` with `generateText`/`streamText`, cost in `providerMetadata.deapi.cost`, chat models from `deapi.listModels()`, media and embedding models too. Or `createOpenAI({ baseURL: "https://oai.deapi.ai/v1", apiKey: process.env.DEAPI_API_KEY })` from `@ai-sdk/openai` with `.chat("qwen3.8-flash")`, not the default Responses model |
 
 Pass the key from the environment in every case.

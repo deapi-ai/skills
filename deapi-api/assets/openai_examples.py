@@ -5,14 +5,17 @@ Tested with openai 3.46.0; `video` needs a release that has client.videos (not 1
 
     export DEAPI_API_KEY=sk-dp-...
     python openai_examples.py models                                 # free
+    python openai_examples.py chat-models                            # free, with prices
+    python openai_examples.py chat "Explain embeddings briefly."     # paid (prints the cost)
     python openai_examples.py image "a red fox in the snow" fox.png  # paid
     python openai_examples.py speech "Hello from deAPI." hello.mp3   # paid
     python openai_examples.py transcribe meeting.mp3                 # paid
     python openai_examples.py embed "first text" "second text"       # paid
     python openai_examples.py video "a paper boat in the rain" boat.mp4   # paid
 
-This API has no price quotes; quote the same job on the native API (POST .../price) when the
-cost matters. Model IDs are native deAPI IDs and depend on the account: see `models`.
+This API has no price quotes; quote the same media job on the native API (POST .../price) when
+the cost matters. Chat reports its cost in each response (usage.cost, USD). Model IDs are
+deAPI's own and depend on the account: see `models`.
 DEAPI_OAI_URL (default https://oai.deapi.ai/v1) may name another *.deapi.ai host or a local mock.
 """
 
@@ -43,6 +46,34 @@ def make_client():
 
 def list_models(client):
     return [m.id for m in client.models.list().data]
+
+
+def chat_models(client):
+    """Chat models (the entries with context_length) and their prices per million tokens."""
+    found = {}
+    for m in client.models.list().data:
+        if getattr(m, "context_length", None):
+            pricing = getattr(m, "pricing", None) or {}
+            found[m.id] = {"context_length": m.context_length,
+                           "input_per_1m": float(pricing.get("prompt", 0)) * 1e6,
+                           "output_per_1m": float(pricing.get("completion", 0)) * 1e6}
+    return found
+
+
+def chat(client, prompt, model="qwen3.8-flash", max_tokens=2000, reasoning_effort=None):
+    """Stream an answer; return (text, cost in USD). max_tokens includes reasoning tokens."""
+    extra = {"reasoning_effort": reasoning_effort} if reasoning_effort else {}
+    stream = client.chat.completions.create(
+        model=model, messages=[{"role": "user", "content": prompt}], max_tokens=max_tokens,
+        stream=True, stream_options={"include_usage": True},   # the last chunk carries the cost
+        **extra)
+    parts, cost = [], None
+    for chunk in stream:
+        if chunk.choices and chunk.choices[0].delta.content:
+            parts.append(chunk.choices[0].delta.content)
+        if chunk.usage is not None:
+            cost = getattr(chunk.usage, "cost", None)
+    return "".join(parts), cost
 
 
 def image(client, prompt, out, model="Flux1schnell", size="1024x1024"):
@@ -99,6 +130,15 @@ def main(argv):
     command, args = argv[0], argv[1:]
     if command == "models":
         print("\n".join(list_models(client)))
+    elif command == "chat-models":
+        for model_id, info in chat_models(client).items():
+            print("%s  context %d  $%.4g in / $%.4g out per 1M tokens"
+                  % (model_id, info["context_length"], info["input_per_1m"],
+                     info["output_per_1m"]))
+    elif command == "chat":
+        text, cost = chat(client, args[0])
+        print(text)
+        print("cost: %s USD" % cost, file=sys.stderr)
     elif command == "image":
         print(image(client, args[0], args[1]))
     elif command == "speech":

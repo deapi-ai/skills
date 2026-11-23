@@ -145,8 +145,8 @@ embeddings are cheap, and the price comes back with the result.
 - **TikTok cannot be quoted from the link.** `video_url_transcription_price` and
   `video_description_price` need `duration_seconds` with `platform: "tiktok"`: ask the user
   for the length. Set `platform` whenever you quote by duration; it changes the price.
-- **Transcription language:** pass `lang` only when the spoken language is known; prefer the
-  default `WhisperLargeV3Ct2` (`WhisperLargeV3` ignores `lang`).
+- **Transcription language:** pass `lang` only when the spoken language is known; keep the
+  default `WhisperLargeV3Ct2`.
 - **Long transcripts** can be cut by the client's limit on tool results. Call the
   transcription tool with `return_result_in_response: false` and read the full transcript
   from `result_url`, if the client passes the link to the model.
